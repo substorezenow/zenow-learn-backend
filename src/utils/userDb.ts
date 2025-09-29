@@ -1,7 +1,8 @@
-const { Client } = require('pg');
-let cockroachClient;
+import { Client } from 'pg';
 
-async function getClient() {
+let cockroachClient: Client | null = null;
+
+async function getClient(): Promise<Client> {
   if (cockroachClient) return cockroachClient;
   if (process.env.COCKROACH_URL) {
     cockroachClient = new Client({
@@ -11,7 +12,7 @@ async function getClient() {
   } else {
     cockroachClient = new Client({
       host: process.env.COCKROACH_HOST || 'localhost',
-      port: process.env.COCKROACH_PORT || 26257,
+      port: parseInt(process.env.COCKROACH_PORT || '26257'),
       user: process.env.COCKROACH_USER || 'root',
       password: process.env.COCKROACH_PASS || '',
       database: process.env.COCKROACH_DB || 'defaultdb',
@@ -22,13 +23,13 @@ async function getClient() {
   return cockroachClient;
 }
 
-exports.getUserByUsername = async (username) => {
+export const getUserByUsername = async (username: string): Promise<any> => {
   const client = await getClient();
   const res = await client.query('SELECT * FROM users WHERE username = $1 LIMIT 1', [username]);
   return res.rows[0] || null;
 };
 
-exports.createUser = async ({ username, password, role = 'user' }) => {
+export const createUser = async ({ username, password, role = 'user' }: { username: string; password: string; role?: string }): Promise<any> => {
   const client = await getClient();
   const res = await client.query(
     'INSERT INTO users (username, password, role) VALUES ($1, $2, $3) RETURNING *',

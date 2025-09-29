@@ -2,10 +2,14 @@
   "name": "zenow-learn-backend",
   "version": "1.0.0",
   "description": "Node.js backend with ScyllaDB and CockroachDB integration",
-  "main": "src/index.js",
+  "main": "dist/index.js",
   "scripts": {
-    "start": "node src/index.js",
-    "dev": "nodemon src/index.js"
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
+    "dev:watch": "nodemon --exec ts-node src/index.ts",
+    "migrate": "ts-node src/utils/runMigrations.ts",
+    "migrate:dev": "ts-node-dev --respawn --transpile-only src/utils/runMigrations.ts"
   },
   "dependencies": {
     "bcryptjs": "^3.0.2",
@@ -21,6 +25,17 @@
     "pg": "^8.16.3"
   },
   "devDependencies": {
-    "nodemon": "^3.1.10"
+    "@types/bcryptjs": "^2.4.6",
+    "@types/cors": "^2.8.17",
+    "@types/express": "^4.17.21",
+    "@types/express-fileupload": "^1.4.4",
+    "@types/jsonwebtoken": "^9.0.7",
+    "@types/morgan": "^1.9.9",
+    "@types/node": "^20.19.17",
+    "@types/pg": "^8.11.6",
+    "nodemon": "^3.1.10",
+    "ts-node": "^10.9.2",
+    "ts-node-dev": "^2.0.0",
+    "typescript": "^5.3.3"
   }
 }
