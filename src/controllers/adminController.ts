@@ -437,7 +437,17 @@ export const createCourse = async (req: Request, res: Response): Promise<void> =
     const finalLearningOutcomes = learning_outcomes === '' ? null : learning_outcomes;
     const finalCourseModules = course_modules === '' ? null : course_modules;
     
-    const values = [finalFieldId, title, finalSlug, description, short_description, banner_image, thumbnail_image, duration_hours, difficulty_level, price, is_free, is_published, finalInstructorId, prerequisites, finalLearningOutcomes, finalCourseModules, tags];
+    // Convert comma-separated string to PostgreSQL array format for tags
+    let finalTags = null;
+    if (tags && typeof tags === 'string' && tags.trim() !== '') {
+      // Convert "tag1,tag2,tag3" to "{tag1,tag2,tag3}"
+      const tagArray = tags.split(',').map(tag => tag.trim()).filter(tag => tag !== '');
+      if (tagArray.length > 0) {
+        finalTags = `{${tagArray.join(',')}}`;
+      }
+    }
+    
+    const values = [finalFieldId, title, finalSlug, description, short_description, banner_image, thumbnail_image, duration_hours, difficulty_level, price, is_free, is_published, finalInstructorId, prerequisites, finalLearningOutcomes, finalCourseModules, finalTags];
     
     const insertResult = await client.query(insertQuery, values);
     const newCourseId = insertResult.rows[0].id;
@@ -589,7 +599,16 @@ export const updateCourse = async (req: Request, res: Response): Promise<void> =
     }
     if (tags !== undefined) {
       updateFields.push(`tags = $${paramCount}`);
-      values.push(tags);
+      // Convert comma-separated string to PostgreSQL array format
+      let finalTags = null;
+      if (tags && typeof tags === 'string' && tags.trim() !== '') {
+        // Convert "tag1,tag2,tag3" to "{tag1,tag2,tag3}"
+        const tagArray = tags.split(',').map(tag => tag.trim()).filter(tag => tag !== '');
+        if (tagArray.length > 0) {
+          finalTags = `{${tagArray.join(',')}}`;
+        }
+      }
+      values.push(finalTags);
       paramCount++;
     }
     

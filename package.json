@@ -9,7 +9,9 @@
     "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
     "dev:watch": "nodemon --exec ts-node src/index.ts",
     "migrate": "ts-node src/utils/runMigrations.ts",
-    "migrate:dev": "ts-node-dev --respawn --transpile-only src/utils/runMigrations.ts"
+    "migrate:dev": "ts-node-dev --respawn --transpile-only src/utils/runMigrations.ts",
+    "create-admin": "ts-node src/utils/createAdminUser.ts",
+    "check-users": "ts-node src/utils/checkUsers.ts"
   },
   "dependencies": {
     "bcryptjs": "^3.0.2",

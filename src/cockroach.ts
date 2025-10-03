@@ -1,15 +1,15 @@
-import { Client } from 'pg';
+import { Pool } from 'pg';
 
-let cockroachClient: Client | null = null;
+let pool: Pool | null = null;
 
 export function connectCockroach(): void {
   if (process.env.COCKROACH_URL) {
-    cockroachClient = new Client({
+    pool = new Pool({
       connectionString: process.env.COCKROACH_URL,
       ssl: { rejectUnauthorized: false },
     });
   } else {
-    cockroachClient = new Client({
+    pool = new Pool({
       host: process.env.COCKROACH_HOST || 'localhost',
       port: parseInt(process.env.COCKROACH_PORT || '26257'),
       user: process.env.COCKROACH_USER || 'root',
@@ -22,12 +22,13 @@ export function connectCockroach(): void {
     });
   }
   
-  cockroachClient
+  pool
     .connect()
-    .then(() => {
+    .then((client) => {
       console.log('Connected to CockroachDB');
+      client.release();
     })
     .catch((err) => console.error('CockroachDB connection error:', err));
 }
 
-export { cockroachClient };
+export { pool };

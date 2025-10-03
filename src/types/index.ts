@@ -102,7 +102,7 @@ export interface User {
   password_hash: string;
   first_name: string;
   last_name: string;
-  role: 'student' | 'instructor' | 'admin';
+  role: 'student' | 'instructor' | 'admin' | 'superuser';
   is_active: boolean;
   email_verified: boolean;
   created_at: string;
@@ -220,7 +220,7 @@ export interface AdminStats {
 export interface AuthUser {
   id: number;
   email: string;
-  role: 'student' | 'instructor' | 'admin';
+  role: 'student' | 'instructor' | 'admin' | 'superuser';
 }
 
 export interface LoginRequest {

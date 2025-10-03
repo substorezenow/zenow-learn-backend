@@ -1,5 +1,5 @@
 import express from 'express';
-import { authenticateToken } from '../middleware/authMiddleware';
+import { requireAdmin } from '../middleware/adminAuth';
 import {
   // Categories
   createCategory,
@@ -26,33 +26,25 @@ import {
 const router = express.Router();
 
 // ==================== ADMIN STATISTICS ====================
-router.get('/stats', getAdminStats); // Temporarily disabled auth for testing
+router.get('/stats', requireAdmin, getAdminStats);
 
 // ==================== CATEGORIES ADMIN ROUTES ====================
-router.get('/categories', getAllCategoriesAdmin); // Temporarily disabled auth for testing
-router.post('/categories', createCategory); // Temporarily disabled auth for testing
-router.put('/categories/:id', updateCategory); // Temporarily disabled auth for testing
-router.delete('/categories/:id', deleteCategory); // Temporarily disabled auth for testing
+router.get('/categories', requireAdmin, getAllCategoriesAdmin);
+router.post('/categories', requireAdmin, createCategory);
+router.put('/categories/:id', requireAdmin, updateCategory);
+router.delete('/categories/:id', requireAdmin, deleteCategory);
 
 // ==================== FIELDS ADMIN ROUTES ====================
-router.get('/fields', getAllFieldsAdmin); // Temporarily disabled auth for testing
-router.post('/fields', createField); // Temporarily disabled auth for testing
-router.put('/fields/:id', updateField); // Temporarily disabled auth for testing
-router.delete('/fields/:id', deleteField); // Temporarily disabled auth for testing
+router.get('/fields', requireAdmin, getAllFieldsAdmin);
+router.post('/fields', requireAdmin, createField);
+router.put('/fields/:id', requireAdmin, updateField);
+router.delete('/fields/:id', requireAdmin, deleteField);
 
 // ==================== COURSES ADMIN ROUTES ====================
-router.get('/courses', getAllCoursesAdmin); // Temporarily disabled auth for testing
-router.post('/courses', createCourse); // Temporarily disabled auth for testing
-router.put('/courses/:id', updateCourse); // Temporarily disabled auth for testing
-router.delete('/courses/:id', deleteCourse); // Temporarily disabled auth for testing
+router.get('/courses', requireAdmin, getAllCoursesAdmin);
+router.post('/courses', requireAdmin, createCourse);
+router.put('/courses/:id', requireAdmin, updateCourse);
+router.delete('/courses/:id', requireAdmin, deleteCourse);
 
-// Test route to verify admin routes are working
-router.get('/test', (req, res) => {
-  res.json({ 
-    message: 'Admin routes are working!',
-    getAllCoursesAdmin: typeof getAllCoursesAdmin,
-    createCourse: typeof createCourse
-  });
-});
 
 export default router;
