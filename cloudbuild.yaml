@@ -4,6 +4,7 @@ steps:
   - name: 'gcr.io/cloud-builders/docker'
     args: [
       'build',
+      '--no-cache',
       '-t', 'gcr.io/$PROJECT_ID/zenow-learn-backend:$COMMIT_SHA',
       '-t', 'gcr.io/$PROJECT_ID/zenow-learn-backend:latest',
       '.'

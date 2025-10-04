@@ -191,20 +191,25 @@ gcloud logging tail "resource.type=cloud_run_revision AND resource.labels.servic
 
 ### Common Issues
 
-1. **Database Connection Failed**
+1. **Docker Build Failed - "tsc: not found"**
+   - **Cause**: TypeScript not available during build
+   - **Solution**: Ensure dev dependencies are installed in builder stage
+   - **Fix**: The Dockerfile has been updated to install all dependencies during build
+
+2. **Database Connection Failed**
    - Check CockroachDB connection string
    - Verify SSL settings
    - Ensure database is accessible from Cloud Run
 
-2. **CORS Errors**
+3. **CORS Errors**
    - Verify CORS_ORIGIN environment variable
    - Check frontend domain configuration
 
-3. **Authentication Issues**
+4. **Authentication Issues**
    - Verify JWT_SECRET is set
    - Check token expiration settings
 
-4. **Memory Issues**
+5. **Memory Issues**
    - Increase Cloud Run memory allocation
    - Optimize database queries
    - Check for memory leaks

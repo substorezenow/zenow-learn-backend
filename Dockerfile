@@ -8,14 +8,19 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies (including dev dependencies for build)
-RUN npm ci --only=production --silent
+# Install ALL dependencies (including dev dependencies for build)
+RUN npm ci --silent
 
 # Copy source code
 COPY . .
 
 # Build TypeScript to JavaScript
 RUN npm run build
+
+# Verify build output exists
+RUN ls -la dist/ && \
+    test -f dist/index.js && \
+    echo "Build successful - dist/index.js exists"
 
 # Stage 2: Production stage
 FROM node:18-alpine AS production
