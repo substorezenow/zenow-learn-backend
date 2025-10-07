@@ -51,6 +51,12 @@ COPY --chown=nodejs:nodejs src/migrations ./src/migrations
 # Copy startup scripts
 COPY --chown=nodejs:nodejs start.sh ./start.sh
 COPY --chown=nodejs:nodejs start-debug.sh ./start-debug.sh
+COPY --chown=nodejs:nodejs start-debug.js ./start-debug.js
+
+# Make scripts executable and verify they exist
+RUN chmod +x ./start.sh ./start-debug.sh && \
+    ls -la ./start.sh ./start-debug.sh ./start-debug.js && \
+    echo "✅ Startup scripts copied and made executable"
 
 # Switch to non-root user
 USER nodejs
@@ -65,5 +71,5 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
 # Use dumb-init to handle signals properly
 ENTRYPOINT ["dumb-init", "--"]
 
-# Start the application with debug script
-CMD ["./start-debug.sh"]
+# Start the application with Node.js debug script
+CMD ["node", "start-debug.js"]
