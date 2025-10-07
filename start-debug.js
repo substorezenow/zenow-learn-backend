@@ -56,6 +56,19 @@ if (fs.existsSync('dist')) {
   process.exit(1);
 }
 
+// Check logs directory
+if (fs.existsSync('logs')) {
+  console.log('✅ logs directory exists');
+  try {
+    const logsFiles = fs.readdirSync('logs');
+    console.log('📁 logs contents:', logsFiles.length > 0 ? logsFiles : 'empty');
+  } catch (error) {
+    console.log('⚠️ logs directory exists but not readable:', error.message);
+  }
+} else {
+  console.log('⚠️ logs directory not found - will use console logging only');
+}
+
 // Check if main file exists
 if (fs.existsSync('dist/index.js')) {
   console.log('✅ dist/index.js exists');

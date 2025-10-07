@@ -11,6 +11,52 @@ export class LoggerService {
   private metrics: Map<string, number> = new Map();
 
   private constructor() {
+    // Create transports array
+    const transports: winston.transport[] = [
+      new winston.transports.Console({
+        format: winston.format.combine(
+          winston.format.colorize(),
+          winston.format.simple()
+        )
+      })
+    ];
+
+    // Only add file transports if we can write to the logs directory
+    try {
+      const fs = require('fs');
+      const path = require('path');
+      
+      // Try to create logs directory
+      if (!fs.existsSync('logs')) {
+        fs.mkdirSync('logs', { recursive: true });
+      }
+      
+      // Test if we can write to the logs directory
+      const testFile = path.join('logs', 'test-write.tmp');
+      fs.writeFileSync(testFile, 'test');
+      fs.unlinkSync(testFile);
+      
+      // If we can write, add file transports
+      transports.push(
+        new winston.transports.File({
+          filename: 'logs/error.log',
+          level: 'error',
+          maxsize: 5242880, // 5MB
+          maxFiles: 5
+        }),
+        new winston.transports.File({
+          filename: 'logs/combined.log',
+          maxsize: 5242880, // 5MB
+          maxFiles: 5
+        })
+      );
+      
+      console.log('✅ File logging enabled - logs directory accessible');
+    } catch (error: any) {
+      console.log('⚠️ File logging disabled - logs directory not accessible:', error.message);
+      console.log('📝 Using console logging only (suitable for Cloud Run)');
+    }
+
     this.logger = winston.createLogger({
       level: process.env.LOG_LEVEL || 'info',
       format: winston.format.combine(
@@ -32,29 +78,8 @@ export class LoggerService {
         service: 'zenow-learn-backend',
         environment: process.env.NODE_ENV || 'development'
       },
-      transports: [
-        new winston.transports.Console({
-          format: winston.format.combine(
-            winston.format.colorize(),
-            winston.format.simple()
-          )
-        }),
-        new winston.transports.File({
-          filename: 'logs/error.log',
-          level: 'error',
-          maxsize: 5242880, // 5MB
-          maxFiles: 5
-        }),
-        new winston.transports.File({
-          filename: 'logs/combined.log',
-          maxsize: 5242880, // 5MB
-          maxFiles: 5
-        })
-      ]
+      transports
     });
-
-    // Create logs directory if it doesn't exist
-    require('fs').mkdirSync('logs', { recursive: true });
   }
 
   public static getInstance(): LoggerService {
