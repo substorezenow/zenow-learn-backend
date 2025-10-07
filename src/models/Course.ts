@@ -1,5 +1,5 @@
-import { Client } from 'pg';
 import { Course as CourseType, CreateCourseRequest, UpdateCourseRequest } from '../types';
+import { dbManager } from '../utils/databaseManager';
 
 interface CourseFilters {
   category_id?: number;
@@ -11,22 +11,6 @@ interface CourseFilters {
 }
 
 export class Course {
-  private client: Client;
-
-  constructor() {
-    this.client = new Client({
-      connectionString: process.env.COCKROACH_URL
-    });
-  }
-
-  async connect(): Promise<void> {
-    try {
-      await this.client.connect();
-    } catch (error) {
-      console.error('Error connecting to database:', error);
-      throw error;
-    }
-  }
 
   async getAllCourses(filters: CourseFilters = {}): Promise<CourseType[]> {
     try {
@@ -87,7 +71,7 @@ export class Course {
         values.push(filters.limit);
       }
 
-      const result = await this.client.query(query, values);
+      const result = await dbManager.query(query, values);
       return result.rows;
     } catch (error) {
       console.error('Error fetching courses:', error);
@@ -113,7 +97,7 @@ export class Course {
         LEFT JOIN users u ON c.instructor_id = u.id
         WHERE c.id = $1 AND c.is_published = true
       `;
-      const result = await this.client.query(query, [id]);
+      const result = await dbManager.query(query, [id]);
       return result.rows[0] || null;
     } catch (error) {
       console.error('Error fetching course by ID:', error);
@@ -139,7 +123,7 @@ export class Course {
         LEFT JOIN users u ON c.instructor_id = u.id
         WHERE c.slug = $1 AND c.is_published = true
       `;
-      const result = await this.client.query(query, [slug]);
+      const result = await dbManager.query(query, [slug]);
       return result.rows[0] || null;
     } catch (error) {
       console.error('Error fetching course by slug:', error);
@@ -156,7 +140,7 @@ export class Course {
         WHERE course_id = $1 
         ORDER BY sort_order ASC
       `;
-      const result = await this.client.query(query, [courseId]);
+      const result = await dbManager.query(query, [courseId]);
       return result.rows;
     } catch (error) {
       console.error('Error fetching course modules:', error);
@@ -179,7 +163,7 @@ export class Course {
         ORDER BY c.rating DESC, c.enrolled_students DESC
         LIMIT $2
       `;
-      const result = await this.client.query(query, [courseId, limit]);
+      const result = await dbManager.query(query, [courseId, limit]);
       return result.rows;
     } catch (error) {
       console.error('Error fetching similar courses:', error);
@@ -214,7 +198,7 @@ export class Course {
         course_modules, tags
       ];
 
-      const result = await this.client.query(query, values);
+      const result = await dbManager.query(query, values);
       return result.rows[0];
     } catch (error) {
       console.error('Error creating course:', error);
@@ -250,7 +234,7 @@ export class Course {
         course_modules, tags, is_published, id
       ];
 
-      const result = await this.client.query(query, values);
+      const result = await dbManager.query(query, values);
       return result.rows[0];
     } catch (error) {
       console.error('Error updating course:', error);
@@ -266,7 +250,7 @@ export class Course {
         ON CONFLICT (user_id, course_id) DO NOTHING
         RETURNING *
       `;
-      const result = await this.client.query(query, [userId, courseId]);
+      const result = await dbManager.query(query, [userId, courseId]);
       return result.rows[0];
     } catch (error) {
       console.error('Error enrolling user:', error);
@@ -280,7 +264,7 @@ export class Course {
         SELECT * FROM enrollments 
         WHERE user_id = $1 AND course_id = $2
       `;
-      const result = await this.client.query(query, [userId, courseId]);
+      const result = await dbManager.query(query, [userId, courseId]);
       return result.rows[0] || null;
     } catch (error) {
       console.error('Error fetching user enrollment:', error);
@@ -288,7 +272,4 @@ export class Course {
     }
   }
 
-  async close(): Promise<void> {
-    await this.client.end();
-  }
 }

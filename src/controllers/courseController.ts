@@ -3,6 +3,7 @@ import { Category } from '../models/Category';
 import { Field } from '../models/Field';
 import { Course } from '../models/Course';
 import { ApiResponse, Category as CategoryType, Field as FieldType, Course as CourseType } from '../types';
+import { cacheManager } from '../utils/cacheManager';
 
 // Mock data for development
 const mockCategories: CategoryType[] = [
@@ -35,10 +36,17 @@ const mockCategories: CategoryType[] = [
 // Categories Controller
 export const getAllCategories = async (req: Request, res: Response): Promise<void> => {
   try {
-    const categoryModel = new Category();
-    await categoryModel.connect();
-    const categories = await categoryModel.getAllCategories();
-    await categoryModel.close();
+    // Try to get from cache first
+    let categories = await cacheManager.getCachedCategories();
+    
+    if (!categories) {
+      // Cache miss - fetch from database
+      const categoryModel = new Category();
+      categories = await categoryModel.getAllCategories();
+      
+      // Cache the result
+      await cacheManager.cacheCategories(categories);
+    }
     
     const response: ApiResponse<CategoryType[]> = {
       success: true,
@@ -62,9 +70,7 @@ export const getCategoryById = async (req: Request, res: Response): Promise<void
   try {
     const { id } = req.params;
     const categoryModel = new Category();
-    await categoryModel.connect();
     const category = await categoryModel.getCategoryById(parseInt(id));
-    await categoryModel.close();
     
     if (!category) {
       const response: ApiResponse = {
@@ -93,9 +99,7 @@ export const getFieldsByCategory = async (req: Request, res: Response): Promise<
   try {
     const { id } = req.params;
     const categoryModel = new Category();
-    await categoryModel.connect();
     const fields = await categoryModel.getFieldsByCategoryId(parseInt(id));
-    await categoryModel.close();
     
     const response: ApiResponse<FieldType[]> = {
       success: true,
@@ -116,9 +120,7 @@ export const getFieldsByCategory = async (req: Request, res: Response): Promise<
 export const getAllFields = async (req: Request, res: Response): Promise<void> => {
   try {
     const fieldModel = new Field();
-    await fieldModel.connect();
     const fields = await fieldModel.getAllFields();
-    await fieldModel.close();
     
     const response: ApiResponse<FieldType[]> = {
       success: true,
@@ -139,9 +141,7 @@ export const getFieldById = async (req: Request, res: Response): Promise<void> =
   try {
     const { id } = req.params;
     const fieldModel = new Field();
-    await fieldModel.connect();
     const field = await fieldModel.getFieldById(parseInt(id));
-    await fieldModel.close();
     
     if (!field) {
       const response: ApiResponse = {
@@ -170,9 +170,7 @@ export const getCoursesByField = async (req: Request, res: Response): Promise<vo
   try {
     const { id } = req.params;
     const fieldModel = new Field();
-    await fieldModel.connect();
     const courses = await fieldModel.getCoursesByFieldId(parseInt(id));
-    await fieldModel.close();
     
     const response: ApiResponse<CourseType[]> = {
       success: true,
@@ -192,10 +190,19 @@ export const getCoursesByField = async (req: Request, res: Response): Promise<vo
 // Courses Controller
 export const getAllCourses = async (req: Request, res: Response): Promise<void> => {
   try {
-    const courseModel = new Course();
-    await courseModel.connect();
-    const courses = await courseModel.getAllCourses(req.query);
-    await courseModel.close();
+    const filters = req.query;
+    
+    // Try to get from cache first
+    let courses = await cacheManager.getCachedCourses(filters);
+    
+    if (!courses) {
+      // Cache miss - fetch from database
+      const courseModel = new Course();
+      courses = await courseModel.getAllCourses(filters);
+      
+      // Cache the result
+      await cacheManager.cacheCourses(courses, filters);
+    }
     
     const response: ApiResponse<CourseType[]> = {
       success: true,
@@ -215,10 +222,20 @@ export const getAllCourses = async (req: Request, res: Response): Promise<void> 
 export const getCourseById = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
-    const courseModel = new Course();
-    await courseModel.connect();
-    const course = await courseModel.getCourseById(parseInt(id));
-    await courseModel.close();
+    
+    // Try to get from cache first
+    let course = await cacheManager.getCachedCourse(parseInt(id));
+    
+    if (!course) {
+      // Cache miss - fetch from database
+      const courseModel = new Course();
+      course = await courseModel.getCourseById(parseInt(id));
+      
+      if (course) {
+        // Cache the result
+        await cacheManager.cacheCourse(parseInt(id), course);
+      }
+    }
     
     if (!course) {
       const response: ApiResponse = {
@@ -247,9 +264,7 @@ export const getCourseBySlug = async (req: Request, res: Response): Promise<void
   try {
     const { slug } = req.params;
     const courseModel = new Course();
-    await courseModel.connect();
     const course = await courseModel.getCourseBySlug(slug);
-    await courseModel.close();
     
     if (!course) {
       const response: ApiResponse = {
@@ -280,12 +295,10 @@ export const enrollInCourse = async (req: Request, res: Response): Promise<void>
     const userId = req.user!.id; // Assuming user is authenticated
     
     const courseModel = new Course();
-    await courseModel.connect();
     
     // Check if user is already enrolled
     const existingEnrollment = await courseModel.getUserEnrollment(userId, parseInt(id));
     if (existingEnrollment) {
-      await courseModel.close();
       const response: ApiResponse = {
         success: false,
         error: 'User is already enrolled in this course'
@@ -296,7 +309,6 @@ export const enrollInCourse = async (req: Request, res: Response): Promise<void>
     
     // Enroll user
     const enrollment = await courseModel.enrollUser(userId, parseInt(id));
-    await courseModel.close();
     
     const response: ApiResponse = {
       success: true,
@@ -321,9 +333,7 @@ export const createCourse = async (req: Request, res: Response): Promise<void> =
     };
     
     const courseModel = new Course();
-    await courseModel.connect();
     const course = await courseModel.createCourse(courseData);
-    await courseModel.close();
     
     const response: ApiResponse<CourseType> = {
       success: true,
@@ -346,9 +356,7 @@ export const updateCourse = async (req: Request, res: Response): Promise<void> =
     const courseData = req.body;
     
     const courseModel = new Course();
-    await courseModel.connect();
     const course = await courseModel.updateCourse(parseInt(id), courseData);
-    await courseModel.close();
     
     const response: ApiResponse<CourseType> = {
       success: true,

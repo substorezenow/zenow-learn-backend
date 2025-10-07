@@ -1,24 +1,7 @@
-import { Client } from 'pg';
 import { Category as CategoryType, CreateCategoryRequest, UpdateCategoryRequest } from '../types';
+import { dbManager } from '../utils/databaseManager';
 
 export class Category {
-  private client: Client;
-
-  constructor() {
-    this.client = new Client({
-      connectionString: process.env.COCKROACH_URL
-    });
-  }
-
-  async connect(): Promise<void> {
-    try {
-      await this.client.connect();
-    } catch (error) {
-      console.error('Error connecting to database:', error);
-      throw error;
-    }
-  }
-
   async getAllCategories(): Promise<CategoryType[]> {
     try {
       const query = `
@@ -28,7 +11,7 @@ export class Category {
         WHERE is_active = true 
         ORDER BY sort_order ASC, name ASC
       `;
-      const result = await this.client.query(query);
+      const result = await dbManager.query(query);
       return result.rows;
     } catch (error) {
       console.error('Error fetching categories:', error);
@@ -44,7 +27,7 @@ export class Category {
         FROM categories 
         WHERE id = $1 AND is_active = true
       `;
-      const result = await this.client.query(query, [id]);
+      const result = await dbManager.query(query, [id]);
       return result.rows[0] || null;
     } catch (error) {
       console.error('Error fetching category by ID:', error);
@@ -60,7 +43,7 @@ export class Category {
         FROM categories 
         WHERE slug = $1 AND is_active = true
       `;
-      const result = await this.client.query(query, [slug]);
+      const result = await dbManager.query(query, [slug]);
       return result.rows[0] || null;
     } catch (error) {
       console.error('Error fetching category by slug:', error);
@@ -77,7 +60,7 @@ export class Category {
         RETURNING *
       `;
       const values = [name, slug, description, icon_url, banner_image, sort_order];
-      const result = await this.client.query(query, values);
+      const result = await dbManager.query(query, values);
       return result.rows[0];
     } catch (error) {
       console.error('Error creating category:', error);
@@ -97,7 +80,7 @@ export class Category {
         RETURNING *
       `;
       const values = [name, slug, description, icon_url, banner_image, sort_order, is_active, id];
-      const result = await this.client.query(query, values);
+      const result = await dbManager.query(query, values);
       return result.rows[0] || null;
     } catch (error) {
       console.error('Error updating category:', error);
@@ -113,7 +96,7 @@ export class Category {
         WHERE id = $1
         RETURNING *
       `;
-      const result = await this.client.query(query, [id]);
+      const result = await dbManager.query(query, [id]);
       return result.rows[0] || null;
     } catch (error) {
       console.error('Error deleting category:', error);
@@ -134,15 +117,11 @@ export class Category {
                  f.is_active, f.sort_order, f.created_at, f.updated_at
         ORDER BY f.sort_order ASC, f.name ASC
       `;
-      const result = await this.client.query(query, [categoryId]);
+      const result = await dbManager.query(query, [categoryId]);
       return result.rows;
     } catch (error) {
       console.error('Error fetching fields by category:', error);
       throw error;
     }
-  }
-
-  async close(): Promise<void> {
-    await this.client.end();
   }
 }

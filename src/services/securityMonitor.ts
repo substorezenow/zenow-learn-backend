@@ -1,14 +1,12 @@
-import { Pool } from 'pg';
+import { dbManager } from '../utils/databaseManager';
 
 // Enterprise-grade security monitoring service
 export class SecurityMonitor {
-  private pool: Pool;
   private suspiciousActivities: Map<string, { count: number; lastSeen: number; patterns: string[] }> = new Map();
   private readonly SUSPICIOUS_THRESHOLD = 5;
   private readonly MONITORING_WINDOW = 15 * 60 * 1000; // 15 minutes
 
-  constructor(pool: Pool) {
-    this.pool = pool;
+  constructor() {
     this.initializeMonitoring();
   }
 
@@ -21,7 +19,7 @@ export class SecurityMonitor {
     userAgent?: string
   ): Promise<void> {
     try {
-      await this.pool.query(
+      await dbManager.query(
         `INSERT INTO security_events (event_type, event_data, severity, ip_address, user_agent, created_at) 
          VALUES ($1, $2, $3, $4, $5, NOW())`,
         [eventType, JSON.stringify(data), severity, ip, userAgent]
@@ -101,7 +99,7 @@ export class SecurityMonitor {
   // Block suspicious IP
   private async blockSuspiciousIP(ip: string, reason: string): Promise<void> {
     try {
-      await this.pool.query(
+      await dbManager.query(
         `INSERT INTO blocked_ips (ip_address, reason, blocked_at, expires_at) 
          VALUES ($1, $2, NOW(), NOW() + INTERVAL '24 hours') 
          ON CONFLICT (ip_address) DO UPDATE SET 
@@ -123,7 +121,7 @@ export class SecurityMonitor {
   // Check if IP is blocked
   async isIPBlocked(ip: string): Promise<boolean> {
     try {
-      const result = await this.pool.query(
+      const result = await dbManager.query(
         'SELECT 1 FROM blocked_ips WHERE ip_address = $1 AND expires_at > NOW()',
         [ip]
       );
@@ -143,21 +141,21 @@ export class SecurityMonitor {
         suspiciousActivities,
         topEventTypes
       ] = await Promise.all([
-        this.pool.query(`
+        dbManager.query(`
           SELECT event_type, severity, ip_address, created_at 
           FROM security_events 
           WHERE created_at > NOW() - INTERVAL '24 hours' 
           ORDER BY created_at DESC 
           LIMIT 50
         `),
-        this.pool.query(`
+        dbManager.query(`
           SELECT ip_address, reason, blocked_at, expires_at 
           FROM blocked_ips 
           WHERE expires_at > NOW() 
           ORDER BY blocked_at DESC 
           LIMIT 20
         `),
-        this.pool.query(`
+        dbManager.query(`
           SELECT ip_address, COUNT(*) as event_count, 
                  array_agg(DISTINCT event_type) as event_types
           FROM security_events 
@@ -167,7 +165,7 @@ export class SecurityMonitor {
           ORDER BY event_count DESC 
           LIMIT 10
         `),
-        this.pool.query(`
+        dbManager.query(`
           SELECT event_type, COUNT(*) as count, severity 
           FROM security_events 
           WHERE created_at > NOW() - INTERVAL '24 hours' 
@@ -209,7 +207,7 @@ export class SecurityMonitor {
     // Clean up expired blocked IPs
     setInterval(async () => {
       try {
-        await this.pool.query('DELETE FROM blocked_ips WHERE expires_at < NOW()');
+        await dbManager.query('DELETE FROM blocked_ips WHERE expires_at < NOW()');
       } catch (error) {
         console.error('Blocked IP cleanup failed:', error);
       }

@@ -1,15 +1,13 @@
-import { Pool } from 'pg';
+import { dbManager } from '../utils/databaseManager';
 
 // Enterprise-grade session management service
 export class SessionService {
-  private pool: Pool;
   private sessionCache: Map<string, { userId: string; expiresAt: number; lastActivity: number }> = new Map();
   private blacklistedSessions: Set<string> = new Set();
   private readonly MAX_CONCURRENT_SESSIONS = 3;
   private readonly SESSION_TIMEOUT = 4 * 60 * 60 * 1000; // 4 hours
 
-  constructor(pool: Pool) {
-    this.pool = pool;
+  constructor() {
     this.initializeSessionCleanup();
   }
 
@@ -27,7 +25,7 @@ export class SessionService {
       const expiresAt = Date.now() + this.SESSION_TIMEOUT;
       
       // Store in database
-      await this.pool.query(
+      await dbManager.query(
         `INSERT INTO user_sessions (session_id, user_id, fingerprint_hash, expires_at, created_at, last_activity) 
          VALUES ($1, $2, $3, $4, NOW(), NOW()) 
          ON CONFLICT (session_id) DO UPDATE SET 
@@ -72,7 +70,7 @@ export class SessionService {
       }
 
       // Check database
-      const result = await this.pool.query(
+      const result = await dbManager.query(
         `SELECT user_id, expires_at, fingerprint_hash FROM user_sessions 
          WHERE session_id = $1 AND expires_at > NOW()`,
         [sessionId]
@@ -91,7 +89,7 @@ export class SessionService {
       }
 
       // Update last activity
-      await this.pool.query(
+      await dbManager.query(
         'UPDATE user_sessions SET last_activity = NOW() WHERE session_id = $1',
         [sessionId]
       );
@@ -124,7 +122,7 @@ export class SessionService {
       });
 
       // Remove from database
-      await this.pool.query(
+      await dbManager.query(
         'DELETE FROM user_sessions WHERE session_id = $1',
         [sessionId]
       );
@@ -135,7 +133,7 @@ export class SessionService {
 
   // Enforce concurrent session limit
   private async enforceSessionLimit(userId: string): Promise<void> {
-    const result = await this.pool.query(
+    const result = await dbManager.query(
       `SELECT COUNT(*) as count FROM user_sessions 
        WHERE user_id = $1 AND expires_at > NOW()`,
       [userId]
@@ -145,7 +143,7 @@ export class SessionService {
     
     if (activeSessions >= this.MAX_CONCURRENT_SESSIONS) {
       // Remove oldest sessions
-      await this.pool.query(
+      await dbManager.query(
         `DELETE FROM user_sessions 
          WHERE user_id = $1 AND session_id IN (
            SELECT session_id FROM user_sessions 
@@ -161,7 +159,7 @@ export class SessionService {
   // Log security events
   private async logSecurityEvent(eventType: string, data: any): Promise<void> {
     try {
-      await this.pool.query(
+      await dbManager.query(
         `INSERT INTO security_events (event_type, event_data, created_at) 
          VALUES ($1, $2, NOW())`,
         [eventType, JSON.stringify(data)]
@@ -184,12 +182,12 @@ export class SessionService {
         }
 
         // Clean expired sessions from database
-        await this.pool.query(
+        await dbManager.query(
           'DELETE FROM user_sessions WHERE expires_at < NOW()'
         );
 
         // Clean old security events (keep last 30 days)
-        await this.pool.query(
+        await dbManager.query(
           'DELETE FROM security_events WHERE created_at < NOW() - INTERVAL \'30 days\''
         );
       } catch (error) {
@@ -200,7 +198,7 @@ export class SessionService {
 
   // Get active sessions for user
   async getActiveSessions(userId: string): Promise<any[]> {
-    const result = await this.pool.query(
+    const result = await dbManager.query(
       `SELECT session_id, created_at, last_activity, expires_at 
        FROM user_sessions 
        WHERE user_id = $1 AND expires_at > NOW() 
@@ -212,7 +210,7 @@ export class SessionService {
 
   // Revoke all sessions for user
   async revokeAllUserSessions(userId: string): Promise<void> {
-    const result = await this.pool.query(
+    const result = await dbManager.query(
       'SELECT session_id FROM user_sessions WHERE user_id = $1',
       [userId]
     );
@@ -221,7 +219,7 @@ export class SessionService {
       this.blacklistedSessions.add(row.session_id);
     }
 
-    await this.pool.query(
+        await dbManager.query(
       'DELETE FROM user_sessions WHERE user_id = $1',
       [userId]
     );

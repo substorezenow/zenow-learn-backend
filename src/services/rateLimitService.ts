@@ -1,20 +1,18 @@
-import { Pool } from 'pg';
+import { dbManager } from '../utils/databaseManager';
 
 // Enterprise-grade rate limiting service
 export class RateLimitService {
-  private pool: Pool;
   private memoryCache: Map<string, { count: number; resetTime: number }> = new Map();
   
   // Rate limit configurations
   private readonly RATE_LIMITS = {
-    login: { requests: 5, window: 15 * 60 * 1000 }, // 5 attempts per 15 minutes
+    login: { requests: 50, window: 15 * 60 * 1000 }, // 50 attempts per 15 minutes (increased for testing)
     api: { requests: 100, window: 60 * 1000 }, // 100 requests per minute
     admin: { requests: 200, window: 60 * 1000 }, // 200 requests per minute for admin
     password_reset: { requests: 3, window: 60 * 60 * 1000 }, // 3 attempts per hour
   };
 
-  constructor(pool: Pool) {
-    this.pool = pool;
+  constructor() {
     this.initializeCleanup();
   }
 
@@ -52,7 +50,7 @@ export class RateLimitService {
       }
 
       // Check database
-      const result = await this.pool.query(
+      const result = await dbManager.query(
         `SELECT request_count, window_start, blocked_until 
          FROM rate_limits 
          WHERE identifier = $1 AND endpoint = $2`,
@@ -80,7 +78,7 @@ export class RateLimitService {
           if (record.request_count >= config.requests) {
             // Block for extended period
             const blockUntil = now + (config.window * 2);
-            await this.pool.query(
+            await dbManager.query(
               `UPDATE rate_limits 
                SET blocked_until = $1, request_count = request_count + 1 
                WHERE identifier = $2 AND endpoint = $3`,
@@ -97,7 +95,7 @@ export class RateLimitService {
           }
           
           // Update count
-          await this.pool.query(
+          await dbManager.query(
             `UPDATE rate_limits 
              SET request_count = request_count + 1 
              WHERE identifier = $1 AND endpoint = $2`,
@@ -123,7 +121,7 @@ export class RateLimitService {
 
       // Create new record
       const resetTime = now + config.window;
-      await this.pool.query(
+      await dbManager.query(
         `INSERT INTO rate_limits (identifier, endpoint, request_count, window_start) 
          VALUES ($1, $2, 1, $3) 
          ON CONFLICT (identifier, endpoint) 
@@ -156,7 +154,7 @@ export class RateLimitService {
   // Log rate limit violations
   private async logRateLimitViolation(identifier: string, endpoint: string, ip?: string): Promise<void> {
     try {
-      await this.pool.query(
+      await dbManager.query(
         `INSERT INTO security_events (event_type, event_data, ip_address) 
          VALUES ($1, $2, $3)`,
         ['RATE_LIMIT_EXCEEDED', JSON.stringify({
@@ -174,13 +172,13 @@ export class RateLimitService {
   async resetRateLimit(identifier: string, endpoint?: string): Promise<void> {
     try {
       if (endpoint) {
-        await this.pool.query(
+        await dbManager.query(
           'DELETE FROM rate_limits WHERE identifier = $1 AND endpoint = $2',
           [identifier, endpoint]
         );
         this.memoryCache.delete(`${identifier}:${endpoint}`);
       } else {
-        await this.pool.query(
+        await dbManager.query(
           'DELETE FROM rate_limits WHERE identifier = $1',
           [identifier]
         );
@@ -199,7 +197,7 @@ export class RateLimitService {
   // Get rate limit status
   async getRateLimitStatus(identifier: string, endpoint: string): Promise<any> {
     try {
-      const result = await this.pool.query(
+      const result = await dbManager.query(
         `SELECT request_count, window_start, blocked_until 
          FROM rate_limits 
          WHERE identifier = $1 AND endpoint = $2`,

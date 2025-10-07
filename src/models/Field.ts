@@ -1,23 +1,7 @@
-import { Client } from 'pg';
 import { Field as FieldType, CreateFieldRequest, UpdateFieldRequest } from '../types';
+import { dbManager } from '../utils/databaseManager';
 
 export class Field {
-  private client: Client;
-
-  constructor() {
-    this.client = new Client({
-      connectionString: process.env.COCKROACH_URL
-    });
-  }
-
-  async connect(): Promise<void> {
-    try {
-      await this.client.connect();
-    } catch (error) {
-      console.error('Error connecting to database:', error);
-      throw error;
-    }
-  }
 
   async getAllFields(): Promise<FieldType[]> {
     try {
@@ -35,7 +19,7 @@ export class Field {
                  c.name, c.slug
         ORDER BY f.sort_order ASC, f.name ASC
       `;
-      const result = await this.client.query(query);
+      const result = await dbManager.query(query);
       return result.rows;
     } catch (error) {
       console.error('Error fetching fields:', error);
@@ -53,7 +37,7 @@ export class Field {
         JOIN categories c ON f.category_id = c.id
         WHERE f.id = $1 AND f.is_active = true AND c.is_active = true
       `;
-      const result = await this.client.query(query, [id]);
+      const result = await dbManager.query(query, [id]);
       return result.rows[0] || null;
     } catch (error) {
       console.error('Error fetching field by ID:', error);
@@ -71,7 +55,7 @@ export class Field {
         JOIN categories c ON f.category_id = c.id
         WHERE f.slug = $1 AND f.is_active = true AND c.is_active = true
       `;
-      const result = await this.client.query(query, [slug]);
+      const result = await dbManager.query(query, [slug]);
       return result.rows[0] || null;
     } catch (error) {
       console.error('Error fetching field by slug:', error);
@@ -88,7 +72,7 @@ export class Field {
         RETURNING *
       `;
       const values = [category_id, name, slug, description, icon_url, banner_image, sort_order];
-      const result = await this.client.query(query, values);
+      const result = await dbManager.query(query, values);
       return result.rows[0];
     } catch (error) {
       console.error('Error creating field:', error);
@@ -108,7 +92,7 @@ export class Field {
         RETURNING *
       `;
       const values = [name, slug, description, icon_url, banner_image, sort_order, is_active, id];
-      const result = await this.client.query(query, values);
+      const result = await dbManager.query(query, values);
       return result.rows[0] || null;
     } catch (error) {
       console.error('Error updating field:', error);
@@ -124,7 +108,7 @@ export class Field {
         WHERE id = $1
         RETURNING *
       `;
-      const result = await this.client.query(query, [id]);
+      const result = await dbManager.query(query, [id]);
       return result.rows[0] || null;
     } catch (error) {
       console.error('Error deleting field:', error);
@@ -147,7 +131,7 @@ export class Field {
         WHERE c.field_id = $1 AND c.is_published = true
         ORDER BY c.created_at DESC
       `;
-      const result = await this.client.query(query, [fieldId]);
+      const result = await dbManager.query(query, [fieldId]);
       return result.rows;
     } catch (error) {
       console.error('Error fetching courses by field:', error);
@@ -155,7 +139,4 @@ export class Field {
     }
   }
 
-  async close(): Promise<void> {
-    await this.client.end();
-  }
 }
