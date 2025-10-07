@@ -122,6 +122,16 @@ app.use('/api', routes);
 app.use('/api/v1', routes);
 app.use('/api/v2', routes);
 
+// Simple test endpoint (no dependencies)
+app.get('/api/test', (req, res) => {
+  res.json({
+    status: 'ok',
+    message: 'Backend is running',
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development'
+  });
+});
+
 // Health check endpoint with graceful degradation
 app.get('/api/health', (req, res) => {
   const healthStatus = {
@@ -176,27 +186,33 @@ app.use(errorHandler);
 
 const PORT = config.port || 8080;
 
-app.listen(PORT, () => {
-  // Enhanced startup logging
-  logApplicationStart(PORT, process.env.NODE_ENV || 'development');
-  
-  console.log(`🚀 Server running on port ${PORT}`);
-  console.log(`🔒 Enhanced security features enabled:`);
-  console.log(`   - AES-256-GCM encryption`);
-  console.log(`   - Session management with blacklisting`);
-  console.log(`   - Rate limiting and IP blocking`);
-  console.log(`   - CSRF protection`);
-  console.log(`   - Security monitoring and audit logging`);
-  console.log(`   - Enhanced security headers`);
-  console.log(`📚 API Documentation available at: http://localhost:${PORT}/api/docs`);
-  console.log(`📊 OpenAPI Spec available at: http://localhost:${PORT}/api/docs/openapi.json`);
-  
-  // Log memory usage on startup
-  logMemoryUsage();
-  
-  // Set up periodic memory logging
-  setInterval(logMemoryUsage, 5 * 60 * 1000); // Every 5 minutes
-});
+// Start the server with error handling
+try {
+  app.listen(PORT, () => {
+    // Enhanced startup logging
+    logApplicationStart(PORT, process.env.NODE_ENV || 'development');
+    
+    console.log(`🚀 Server running on port ${PORT}`);
+    console.log(`🔒 Enhanced security features enabled:`);
+    console.log(`   - AES-256-GCM encryption`);
+    console.log(`   - Session management with blacklisting`);
+    console.log(`   - Rate limiting and IP blocking`);
+    console.log(`   - CSRF protection`);
+    console.log(`   - Security monitoring and audit logging`);
+    console.log(`   - Enhanced security headers`);
+    console.log(`📚 API Documentation available at: http://localhost:${PORT}/api/docs`);
+    console.log(`📊 OpenAPI Spec available at: http://localhost:${PORT}/api/docs/openapi.json`);
+    
+    // Log memory usage on startup
+    logMemoryUsage();
+    
+    // Set up periodic memory logging
+    setInterval(logMemoryUsage, 5 * 60 * 1000); // Every 5 minutes
+  });
+} catch (error) {
+  console.error('❌ Failed to start server:', error);
+  process.exit(1);
+}
 
 // Graceful shutdown handling
 process.on('SIGTERM', () => {

@@ -25,8 +25,19 @@ if [ -z "$REDIS_URL" ]; then
   echo "   Set REDIS_URL environment variable for caching"
 fi
 
+# Check if the application file exists
+if [ ! -f "dist/index.js" ]; then
+  echo "❌ ERROR: dist/index.js not found!"
+  echo "📁 Current directory contents:"
+  ls -la
+  echo "📁 dist directory contents:"
+  ls -la dist/ || echo "dist directory does not exist"
+  exit 1
+fi
+
+echo "✅ Application file found: dist/index.js"
 echo "📦 Starting application..."
 echo "----------------------------------------"
 
-# Start the application
+# Start the application with error handling
 exec node dist/index.js

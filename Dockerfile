@@ -48,8 +48,9 @@ COPY --from=builder --chown=nodejs:nodejs /app/dist ./dist
 # Copy any additional files needed at runtime
 COPY --chown=nodejs:nodejs src/migrations ./src/migrations
 
-# Copy startup script
+# Copy startup scripts
 COPY --chown=nodejs:nodejs start.sh ./start.sh
+COPY --chown=nodejs:nodejs start-debug.sh ./start-debug.sh
 
 # Switch to non-root user
 USER nodejs
@@ -64,5 +65,5 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
 # Use dumb-init to handle signals properly
 ENTRYPOINT ["dumb-init", "--"]
 
-# Start the application with startup script
-CMD ["./start.sh"]
+# Start the application with debug script
+CMD ["./start-debug.sh"]
