@@ -33,8 +33,14 @@ steps:
       '--max-instances', '10',
       '--concurrency', '100',
       '--timeout', '300',
+      '--cpu-throttling',
+      '--execution-environment', 'gen2',
       '--set-env-vars', 'NODE_ENV=production',
-      '--set-env-vars', 'PORT=8080'
+      '--set-env-vars', 'PORT=8080',
+      '--set-env-vars', 'JWT_SECRET=your-production-jwt-secret-change-this',
+      '--set-env-vars', 'CORS_ORIGIN=https://your-frontend-domain.com',
+      '--set-env-vars', 'ENABLE_SECURITY_LOGGING=true',
+      '--set-env-vars', 'LOG_LEVEL=info'
     ]
 
 # Store images in Google Container Registry

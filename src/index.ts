@@ -62,11 +62,19 @@ app.use(performanceMonitor);
 app.use(sanitizeInput);
 app.use(validateRateLimit);
 
-// Connect to CockroachDB
-connectCockroach().catch(console.error);
+// Connect to CockroachDB with graceful fallback
+connectCockroach().catch(error => {
+  console.error('⚠️ Database connection failed:', error.message);
+  console.log('🔄 Continuing with degraded functionality...');
+  // Don't exit - allow app to start with limited functionality
+});
 
-// Initialize cache manager
-cacheManager.connect().catch(console.error);
+// Initialize cache manager with graceful fallback
+cacheManager.connect().catch(error => {
+  console.error('⚠️ Redis connection failed:', error.message);
+  console.log('🔄 Continuing without caching...');
+  // Don't exit - allow app to start without caching
+});
 
 // Initialize security services
 let sessionService: SessionService;
@@ -114,23 +122,37 @@ app.use('/api', routes);
 app.use('/api/v1', routes);
 app.use('/api/v2', routes);
 
-// Health check endpoint with security info
+// Health check endpoint with graceful degradation
 app.get('/api/health', (req, res) => {
-  res.json({
+  const healthStatus = {
     status: 'ok',
     timestamp: new Date().toISOString(),
-    security: {
-      sessionManagement: !!sessionService,
-      rateLimiting: !!rateLimitService,
-      securityMonitoring: !!securityMonitor,
-      csrfProtection: true,
-      enhancedHeaders: true
+    services: {
+      database: {
+        status: 'unknown',
+        message: 'Database connection status unknown'
+      },
+      cache: {
+        status: cacheManager.isHealthy() ? 'connected' : 'disconnected',
+        message: cacheManager.isHealthy() ? 'Redis connected' : 'Redis disconnected'
+      },
+      security: {
+        sessionManagement: !!sessionService,
+        rateLimiting: !!rateLimitService,
+        securityMonitoring: !!securityMonitor,
+        csrfProtection: true,
+        enhancedHeaders: true
+      }
     },
-    cache: {
-      redis: cacheManager.isHealthy(),
-      status: cacheManager.isHealthy() ? 'connected' : 'disconnected'
-    }
-  });
+    environment: process.env.NODE_ENV || 'development',
+    version: '1.0.0'
+  };
+
+  // Set appropriate HTTP status based on critical services
+  const criticalServicesDown = !cacheManager.isHealthy();
+  const statusCode = criticalServicesDown ? 503 : 200;
+  
+  res.status(statusCode).json(healthStatus);
 });
 
 // Security dashboard endpoint (admin only)
