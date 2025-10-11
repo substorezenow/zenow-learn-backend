@@ -8,7 +8,7 @@ import { cacheManager } from '../utils/cacheManager';
 // Mock data for development
 const mockCategories: CategoryType[] = [
   {
-    id: 1,
+    id: "1",
     name: "Web Development",
     slug: "web-development",
     description: "Learn modern web development technologies",
@@ -20,7 +20,7 @@ const mockCategories: CategoryType[] = [
     updated_at: "2024-01-15T10:30:00Z"
   },
   {
-    id: 2,
+    id: "2",
     name: "Data Science",
     slug: "data-science",
     description: "Master data analysis and machine learning",
@@ -297,7 +297,7 @@ export const enrollInCourse = async (req: Request, res: Response): Promise<void>
     const courseModel = new Course();
     
     // Check if user is already enrolled
-    const existingEnrollment = await courseModel.getUserEnrollment(userId, parseInt(id));
+    const existingEnrollment = await courseModel.getUserEnrollment(userId, id);
     if (existingEnrollment) {
       const response: ApiResponse = {
         success: false,
@@ -308,7 +308,7 @@ export const enrollInCourse = async (req: Request, res: Response): Promise<void>
     }
     
     // Enroll user
-    const enrollment = await courseModel.enrollUser(userId, parseInt(id));
+    const enrollment = await courseModel.enrollUser(userId, id);
     
     const response: ApiResponse = {
       success: true,

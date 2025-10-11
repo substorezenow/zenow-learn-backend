@@ -13,6 +13,7 @@ import { CSRFMiddleware } from './middleware/csrfMiddleware';
 import { sanitizeInput, validateRateLimit } from './middleware/validation';
 import config from './config';
 import { connectCockroach, pool } from './cockroach';
+import { dbManager } from './utils/databaseManager';
 import { SessionService } from './services/sessionService';
 import { RateLimitService } from './services/rateLimitService';
 import { SecurityMonitor } from './services/securityMonitor';
@@ -50,9 +51,21 @@ app.use(cors({
 app.use(securityHeaders);
 app.use(morgan('combined'));
 app.use(cookieParser()); // Parse cookies for authentication
-app.use(express.json({ limit: '10mb' }));
+// Custom JSON parser that preserves large integer strings
+app.use(express.json({ 
+  limit: '10mb',
+  reviver: (key, value) => {
+    // If the value is a string that looks like a large integer, keep it as string
+    if (typeof value === 'string' && /^\d{15,}$/.test(value)) {
+      return value; // Keep as string, don't convert to number
+    }
+    return value;
+  }
+}));
 app.use(bodyParser.urlencoded({ extended: false, limit: '10mb' }));
 app.use(fileupload());
+
+// Custom middleware removed - now using string IDs everywhere
 
 // Enhanced logging middleware
 app.use(requestLogger);
@@ -62,12 +75,38 @@ app.use(performanceMonitor);
 app.use(sanitizeInput);
 app.use(validateRateLimit);
 
-// Connect to CockroachDB with graceful fallback
-connectCockroach().catch(error => {
-  console.error('⚠️ Database connection failed:', error.message);
-  console.log('🔄 Continuing with degraded functionality...');
-  // Don't exit - allow app to start with limited functionality
-});
+// Connect to CockroachDB with enhanced retry logic
+let dbConnectionStatus = { connected: false, attempts: 0, retryCount: 0 };
+
+const initializeDatabase = async () => {
+  try {
+    await connectCockroach();
+    dbConnectionStatus = dbManager.getConnectionStatus();
+    console.log('✅ Database connection established successfully');
+  } catch (error) {
+    console.error('⚠️ Database connection failed:', (error as Error).message);
+    console.log('🔄 Database will retry automatically in the background...');
+    console.log('📝 Some features may be unavailable until database connection is restored');
+    
+    // Start background retry process
+    setInterval(async () => {
+      try {
+        if (!dbManager.getConnectionStatus().connected) {
+          console.log('🔄 Background database reconnection attempt...');
+          await connectCockroach();
+          dbConnectionStatus = dbManager.getConnectionStatus();
+          console.log('✅ Database reconnected successfully');
+        }
+      } catch (retryError) {
+        // Silent retry - don't spam logs
+        dbConnectionStatus = dbManager.getConnectionStatus();
+      }
+    }, 30000); // Retry every 30 seconds
+  }
+};
+
+// Initialize database connection
+initializeDatabase();
 
 // Initialize cache manager with graceful fallback
 cacheManager.connect().catch(error => {

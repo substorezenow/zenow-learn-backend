@@ -1,10 +1,16 @@
 import { Pool, PoolClient } from 'pg';
 
-// Enhanced database connection manager with connection pooling
+// Enhanced database connection manager with connection pooling and retry logic
 export class DatabaseManager {
   private static instance: DatabaseManager;
   private pool: Pool | null = null;
   private isConnected = false;
+  private retryCount = 0;
+  private maxRetries = 5;
+  private retryDelay = 1000; // Start with 1 second
+  private maxRetryDelay = 30000; // Max 30 seconds
+  private healthCheckInterval: NodeJS.Timeout | null = null;
+  private connectionAttempts = 0;
 
   private constructor() {}
 
@@ -20,7 +26,15 @@ export class DatabaseManager {
       return;
     }
 
+    await this.connectWithRetry();
+  }
+
+  private async connectWithRetry(): Promise<void> {
+    this.connectionAttempts++;
+    
     try {
+      console.log(`🔄 Attempting database connection (attempt ${this.connectionAttempts}/${this.maxRetries})...`);
+      
       if (process.env.COCKROACH_URL) {
         this.pool = new Pool({
           connectionString: process.env.COCKROACH_URL,
@@ -28,7 +42,7 @@ export class DatabaseManager {
           max: 20, // Maximum number of clients in the pool
           min: 5,  // Minimum number of clients in the pool
           idleTimeoutMillis: 30000, // Close idle clients after 30 seconds
-          connectionTimeoutMillis: 2000, // Return an error after 2 seconds if connection could not be established
+          connectionTimeoutMillis: 10000, // Increased to 10 seconds
           maxUses: 7500, // Close (and replace) a connection after it has been used 7500 times
         });
       } else {
@@ -42,20 +56,96 @@ export class DatabaseManager {
           max: 20,
           min: 5,
           idleTimeoutMillis: 30000,
-          connectionTimeoutMillis: 2000,
+          connectionTimeoutMillis: 10000, // Increased to 10 seconds
           maxUses: 7500,
         });
       }
 
-      // Test the connection
-      const client = await this.pool.connect();
+      // Test the connection with timeout
+      const client = await Promise.race([
+        this.pool.connect(),
+        new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Connection timeout')), 15000)
+        )
+      ]) as PoolClient;
+      
       console.log('✅ Database pool connected successfully');
       client.release();
       this.isConnected = true;
+      this.retryCount = 0; // Reset retry count on successful connection
+      this.retryDelay = 1000; // Reset retry delay
+      
+      // Start health monitoring
+      this.startHealthMonitoring();
+      
     } catch (error) {
-      console.error('❌ Database connection failed:', error);
-      throw error;
+      console.error(`❌ Database connection failed (attempt ${this.connectionAttempts}):`, error);
+      
+      // Clean up failed pool
+      if (this.pool) {
+        try {
+          await this.pool.end();
+        } catch (cleanupError) {
+          console.error('Error cleaning up failed pool:', cleanupError);
+        }
+        this.pool = null;
+      }
+      
+      this.isConnected = false;
+      
+      // Retry logic
+      if (this.retryCount < this.maxRetries) {
+        this.retryCount++;
+        console.log(`🔄 Retrying in ${this.retryDelay}ms... (${this.retryCount}/${this.maxRetries})`);
+        
+        await this.sleep(this.retryDelay);
+        
+        // Exponential backoff with jitter
+        this.retryDelay = Math.min(
+          this.retryDelay * 2 + Math.random() * 1000,
+          this.maxRetryDelay
+        );
+        
+        return this.connectWithRetry();
+      } else {
+        console.error('❌ Max retry attempts reached. Database connection failed permanently.');
+        console.log('🔄 Continuing with degraded functionality...');
+        throw new Error(`Database connection failed after ${this.maxRetries} attempts`);
+      }
     }
+  }
+
+  private async sleep(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  private startHealthMonitoring(): void {
+    // Clear existing interval
+    if (this.healthCheckInterval) {
+      clearInterval(this.healthCheckInterval);
+    }
+    
+    // Health check every 30 seconds
+    this.healthCheckInterval = setInterval(async () => {
+      try {
+        if (this.pool && this.isConnected) {
+          const client = await this.pool.connect();
+          await client.query('SELECT 1');
+          client.release();
+        }
+      } catch (error) {
+        console.error('⚠️ Database health check failed:', error);
+        this.isConnected = false;
+        
+        // Attempt to reconnect
+        console.log('🔄 Attempting to reconnect to database...');
+        try {
+          await this.connectWithRetry();
+        } catch (reconnectError) {
+          console.error('❌ Reconnection failed:', reconnectError);
+        }
+      }
+    }, 30000);
   }
 
   public getPool(): Pool {
@@ -68,7 +158,11 @@ export class DatabaseManager {
   public async query(text: string, params?: any[]): Promise<any> {
     // Ensure connection is established
     if (!this.isConnected || !this.pool) {
-      await this.connect();
+      try {
+        await this.connect();
+      } catch (error) {
+        throw new Error(`Database unavailable: ${(error as Error).message}`);
+      }
     }
     
     const start = Date.now();
@@ -85,6 +179,20 @@ export class DatabaseManager {
       return result;
     } catch (error) {
       console.error('Database query error:', error);
+      
+      // If it's a connection error, mark as disconnected and try to reconnect
+      if ((error as any).code === 'ECONNREFUSED' || (error as any).code === 'ENOTFOUND' || (error as Error).message.includes('connection')) {
+        this.isConnected = false;
+        console.log('🔄 Connection lost, attempting to reconnect...');
+        try {
+          await this.connect();
+          // Retry the query once after reconnection
+          return await this.pool!.query(text, params);
+        } catch (reconnectError) {
+          throw new Error(`Database connection lost and reconnection failed: ${(reconnectError as Error).message}`);
+        }
+      }
+      
       throw error;
     }
   }
@@ -114,6 +222,12 @@ export class DatabaseManager {
   }
 
   public async close(): Promise<void> {
+    // Clear health monitoring
+    if (this.healthCheckInterval) {
+      clearInterval(this.healthCheckInterval);
+      this.healthCheckInterval = null;
+    }
+    
     if (this.pool) {
       await this.pool.end();
       this.pool = null;
@@ -133,8 +247,18 @@ export class DatabaseManager {
       return result.rows[0]?.health_check === 1;
     } catch (error) {
       console.error('Database health check failed:', error);
+      this.isConnected = false;
       return false;
     }
+  }
+
+  // Get connection status
+  public getConnectionStatus(): { connected: boolean; attempts: number; retryCount: number } {
+    return {
+      connected: this.isConnected,
+      attempts: this.connectionAttempts,
+      retryCount: this.retryCount
+    };
   }
 
   // Get pool statistics
@@ -147,6 +271,9 @@ export class DatabaseManager {
       totalCount: this.pool.totalCount,
       idleCount: this.pool.idleCount,
       waitingCount: this.pool.waitingCount,
+      connected: this.isConnected,
+      attempts: this.connectionAttempts,
+      retryCount: this.retryCount
     };
   }
 }

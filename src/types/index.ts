@@ -1,6 +1,6 @@
 // Database Models
 export interface Category {
-  id: number;
+  id: string;
   name: string;
   slug: string;
   description: string;
@@ -13,7 +13,7 @@ export interface Category {
 }
 
 export interface Field {
-  id: number;
+  id: string;
   name: string;
   slug: string;
   description: string;
@@ -21,7 +21,7 @@ export interface Field {
   banner_image?: string;
   is_active: boolean;
   sort_order: number;
-  category_id: number;
+  category_id: string;
   category_name?: string;
   category_slug?: string;
   course_count?: number;
@@ -30,7 +30,7 @@ export interface Field {
 }
 
 export interface Course {
-  id: number;
+  id: string;
   title: string;
   slug: string;
   description: string;
@@ -42,8 +42,8 @@ export interface Course {
   price: number;
   is_free: boolean;
   is_published: boolean;
-  field_id: number;
-  instructor_id?: string | number;
+  field_id: string;
+  instructor_id?: string;
   prerequisites?: string;
   learning_outcomes?: string;
   course_modules?: CourseModule[];
@@ -62,8 +62,8 @@ export interface Course {
 }
 
 export interface CourseModule {
-  id: number;
-  course_id: number;
+  id: string;
+  course_id: string;
   title: string;
   description?: string;
   content_type: 'video' | 'text' | 'quiz' | 'assignment';
@@ -76,7 +76,7 @@ export interface CourseModule {
 }
 
 export interface CourseBundle {
-  id: number;
+  id: string;
   name: string;
   slug: string;
   description: string;
@@ -89,15 +89,15 @@ export interface CourseBundle {
 }
 
 export interface BundleCourse {
-  id: number;
-  bundle_id: number;
-  course_id: number;
+  id: string;
+  bundle_id: string;
+  course_id: string;
   sort_order: number;
   created_at: string;
 }
 
 export interface User {
-  id: number;
+  id: string;
   email: string;
   password_hash: string;
   first_name: string;
@@ -110,9 +110,9 @@ export interface User {
 }
 
 export interface Enrollment {
-  id: number;
-  user_id: number;
-  course_id: number;
+  id: string;
+  user_id: string;
+  course_id: string;
   enrolled_at: string;
   completed_at?: string;
   progress_percentage: number;
@@ -148,7 +148,7 @@ export interface CreateCategoryRequest {
 }
 
 export interface UpdateCategoryRequest extends Partial<CreateCategoryRequest> {
-  id: number;
+  id: string;
 }
 
 export interface CreateFieldRequest {
@@ -159,11 +159,11 @@ export interface CreateFieldRequest {
   banner_image?: string;
   sort_order?: number;
   is_active?: boolean;
-  category_id: number;
+  category_id: string;
 }
 
 export interface UpdateFieldRequest extends Partial<CreateFieldRequest> {
-  id: number;
+  id: string;
 }
 
 export interface CreateCourseRequest {
@@ -178,8 +178,8 @@ export interface CreateCourseRequest {
   price: number;
   is_free: boolean;
   is_published?: boolean;
-  field_id: number;
-  instructor_id: string | number;
+  field_id: string;
+  instructor_id: string;
   prerequisites?: string;
   learning_outcomes?: string;
   course_modules?: any;
@@ -187,11 +187,11 @@ export interface CreateCourseRequest {
 }
 
 export interface UpdateCourseRequest extends Partial<CreateCourseRequest> {
-  id: number;
+  id: string;
 }
 
 export interface CreateModuleRequest {
-  course_id: number;
+  course_id: string;
   title: string;
   description?: string;
   content_type: 'video' | 'text' | 'quiz' | 'assignment';
@@ -202,7 +202,7 @@ export interface CreateModuleRequest {
 }
 
 export interface UpdateModuleRequest extends Partial<CreateModuleRequest> {
-  id: number;
+  id: string;
 }
 
 // Admin Statistics
@@ -218,7 +218,7 @@ export interface AdminStats {
 
 // Authentication Types
 export interface AuthUser {
-  id: number;
+  id: string;
   email: string;
   role: 'student' | 'instructor' | 'admin' | 'superuser';
 }

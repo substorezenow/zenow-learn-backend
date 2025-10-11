@@ -2,8 +2,8 @@ import { Course as CourseType, CreateCourseRequest, UpdateCourseRequest } from '
 import { dbManager } from '../utils/databaseManager';
 
 interface CourseFilters {
-  category_id?: number;
-  field_id?: number;
+  category_id?: string;
+  field_id?: string;
   difficulty_level?: string;
   is_free?: boolean;
   search?: string;
@@ -242,7 +242,7 @@ export class Course {
     }
   }
 
-  async enrollUser(userId: number, courseId: number): Promise<any> {
+  async enrollUser(userId: string, courseId: string): Promise<any> {
     try {
       const query = `
         INSERT INTO enrollments (user_id, course_id, enrollment_type)
@@ -258,7 +258,7 @@ export class Course {
     }
   }
 
-  async getUserEnrollment(userId: number, courseId: number): Promise<any> {
+  async getUserEnrollment(userId: string, courseId: string): Promise<any> {
     try {
       const query = `
         SELECT * FROM enrollments 

@@ -8,7 +8,7 @@ export const validationSchemas = {
   createCategory: Joi.object({
     name: Joi.string().min(2).max(100).required(),
     slug: Joi.string().min(2).max(100).pattern(/^[a-z0-9-]+$/).optional(),
-    description: Joi.string().max(1000).optional(),
+    description: Joi.string().max(1000).allow('').optional(),
     icon_url: Joi.string().allow('').optional(),
     banner_image: Joi.string().allow('').optional(),
     sort_order: Joi.number().integer().min(0).optional(),
@@ -18,7 +18,7 @@ export const validationSchemas = {
   updateCategory: Joi.object({
     name: Joi.string().min(2).max(100).optional(),
     slug: Joi.string().min(2).max(100).pattern(/^[a-z0-9-]+$/).optional(),
-    description: Joi.string().max(1000).optional(),
+    description: Joi.string().max(1000).allow('').optional(),
     icon_url: Joi.string().allow('').optional(),
     banner_image: Joi.string().allow('').optional(),
     sort_order: Joi.number().integer().min(0).optional(),
@@ -27,10 +27,10 @@ export const validationSchemas = {
 
   // Field schemas
   createField: Joi.object({
-    category_id: Joi.number().integer().positive().required(),
+    category_id: Joi.string().pattern(/^\d+$/).required(),
     name: Joi.string().min(2).max(100).required(),
     slug: Joi.string().min(2).max(100).pattern(/^[a-z0-9-]+$/).optional(),
-    description: Joi.string().max(1000).optional(),
+    description: Joi.string().max(1000).allow('').optional(),
     icon_url: Joi.string().allow('').optional(),
     banner_image: Joi.string().allow('').optional(),
     sort_order: Joi.number().integer().min(0).optional(),
@@ -38,10 +38,10 @@ export const validationSchemas = {
   }),
 
   updateField: Joi.object({
-    category_id: Joi.number().integer().positive().optional(),
+    category_id: Joi.string().pattern(/^\d+$/).optional(),
     name: Joi.string().min(2).max(100).optional(),
     slug: Joi.string().min(2).max(100).pattern(/^[a-z0-9-]+$/).optional(),
-    description: Joi.string().max(1000).optional(),
+    description: Joi.string().max(1000).allow('').optional(),
     icon_url: Joi.string().allow('').optional(),
     banner_image: Joi.string().allow('').optional(),
     sort_order: Joi.number().integer().min(0).optional(),
@@ -50,42 +50,42 @@ export const validationSchemas = {
 
   // Course schemas
   createCourse: Joi.object({
-    field_id: Joi.number().integer().positive().required(),
+    field_id: Joi.string().pattern(/^\d+$/).required(),
     title: Joi.string().min(2).max(200).required(),
-    slug: Joi.string().min(2).max(200).pattern(/^[a-z0-9-]+$/).optional(),
-    description: Joi.string().max(5000).optional(),
-    short_description: Joi.string().max(500).optional(),
-    banner_image: Joi.string().allow('').optional(),
-    thumbnail_image: Joi.string().allow('').optional(),
+    slug: Joi.string().min(2).max(200).pattern(/^[a-z0-9-]+$/).allow('').optional(),
+    description: Joi.string().max(5000).allow('', null).optional(),
+    short_description: Joi.string().max(500).allow('', null).optional(),
+    banner_image: Joi.string().allow('', null).optional(),
+    thumbnail_image: Joi.string().allow('', null).optional(),
     duration_hours: Joi.number().integer().min(0).max(1000).optional(),
     difficulty_level: Joi.string().valid('beginner', 'intermediate', 'advanced').optional(),
     price: Joi.number().min(0).max(9999.99).optional(),
     is_free: Joi.boolean().optional(),
     is_published: Joi.boolean().optional(),
-    instructor_id: Joi.string().uuid().optional(),
-    prerequisites: Joi.string().max(2000).optional(),
+    instructor_id: Joi.string().uuid().allow('', null).optional(),
+    prerequisites: Joi.string().max(2000).allow('', null).optional(),
     learning_outcomes: Joi.alternatives().try(
-      Joi.string(),
-      Joi.array().items(Joi.string())
+      Joi.string().allow('', null),
+      Joi.array().items(Joi.string()),
+      Joi.valid(null)
     ).optional(),
     course_modules: Joi.alternatives().try(
-      Joi.string(),
-      Joi.array().items(Joi.object())
+      Joi.string().allow('', null),
+      Joi.array().items(Joi.object()),
+      Joi.valid(null)
     ).optional(),
     tags: Joi.alternatives().try(
-      Joi.string(),
-      Joi.array().items(Joi.string())
+      Joi.string().allow('', null),
+      Joi.array().items(Joi.string()),
+      Joi.valid(null)
     ).optional()
   }),
 
   updateCourse: Joi.object({
-    field_id: Joi.alternatives().try(
-      Joi.number().integer().positive(),
-      Joi.string().pattern(/^\d+$/)
-    ).allow(null).optional(),
+    field_id: Joi.string().pattern(/^\d+$/).allow(null).optional(),
     title: Joi.string().min(2).max(200).allow(null).optional(),
-    slug: Joi.string().min(2).max(200).pattern(/^[a-z0-9-]+$/).allow(null).optional(),
-    description: Joi.string().max(5000).allow(null).optional(),
+    slug: Joi.string().min(2).max(200).pattern(/^[a-z0-9-]+$/).allow('', null).optional(),
+    description: Joi.string().max(5000).allow('', null).optional(),
     short_description: Joi.string().max(500).allow('', null).optional(),
     banner_image: Joi.string().allow('', null).optional(),
     thumbnail_image: Joi.string().allow('', null).optional(),
@@ -94,20 +94,20 @@ export const validationSchemas = {
     price: Joi.number().min(0).max(9999.99).allow(null).optional(),
     is_free: Joi.boolean().allow(null).optional(),
     is_published: Joi.boolean().allow(null).optional(),
-    instructor_id: Joi.string().uuid().allow(null).optional(),
+    instructor_id: Joi.string().uuid().allow('', null).optional(),
     prerequisites: Joi.string().max(2000).allow('', null).optional(),
     learning_outcomes: Joi.alternatives().try(
-      Joi.string().allow(''),
+      Joi.string().allow('', null),
       Joi.array().items(Joi.string()),
       Joi.valid(null)
     ).optional(),
     course_modules: Joi.alternatives().try(
-      Joi.string(),
+      Joi.string().allow('', null),
       Joi.array().items(Joi.object()),
       Joi.valid(null)
     ).optional(),
     tags: Joi.alternatives().try(
-      Joi.string(),
+      Joi.string().allow('', null),
       Joi.array().items(Joi.string()),
       Joi.valid(null)
     ).optional()
@@ -134,8 +134,8 @@ export const validationSchemas = {
   }),
 
   courseFilters: Joi.object({
-    category_id: Joi.number().integer().positive().optional(),
-    field_id: Joi.number().integer().positive().optional(),
+    category_id: Joi.string().pattern(/^\d+$/).optional(),
+    field_id: Joi.string().pattern(/^\d+$/).optional(),
     difficulty_level: Joi.string().valid('beginner', 'intermediate', 'advanced').optional(),
     is_free: Joi.boolean().optional(),
     search: Joi.string().max(100).optional(),
@@ -230,7 +230,7 @@ export const validateResponse = (schema: Joi.ObjectSchema) => {
 // Common validation schemas
 export const commonValidations = {
   id: Joi.object({
-    id: Joi.number().integer().positive().required()
+    id: Joi.string().pattern(/^\d+$/).required()
   }),
 
   slug: Joi.object({
