@@ -4,6 +4,9 @@ import { Field } from '../models/Field';
 import { Course } from '../models/Course';
 import { ApiResponse, Category as CategoryType, Field as FieldType, Course as CourseType } from '../types';
 import { cacheManager } from '../utils/cacheManager';
+import { gracefulDegradation } from '../utils/gracefulDegradation';
+import { circuitBreakers } from '../utils/circuitBreaker';
+import { logger } from '../utils/logger';
 
 // Mock data for development
 const mockCategories: CategoryType[] = [
@@ -33,36 +36,46 @@ const mockCategories: CategoryType[] = [
   }
 ];
 
-// Categories Controller
+// Categories Controller with Circuit Breaker and Graceful Degradation
 export const getAllCategories = async (req: Request, res: Response): Promise<void> => {
   try {
-    // Try to get from cache first
-    let categories = await cacheManager.getCachedCategories();
-    
-    if (!categories) {
-      // Cache miss - fetch from database
-      const categoryModel = new Category();
-      categories = await categoryModel.getAllCategories();
-      
-      // Cache the result
-      await cacheManager.cacheCategories(categories);
-    }
+    // Use graceful degradation service with circuit breaker protection
+    const categories = await gracefulDegradation.getCategoriesWithFallback();
     
     const response: ApiResponse<CategoryType[]> = {
       success: true,
       data: categories,
-      count: categories.length
+      count: categories.length,
+      timestamp: new Date().toISOString()
     };
-    res.status(200).json(response);
+    
+    // Add resilience headers
+    const dbStats = circuitBreakers.database.getStats();
+    const cacheStats = circuitBreakers.cache.getStats();
+    
+    res.set('X-Database-Status', dbStats.state);
+    res.set('X-Cache-Status', cacheStats.state);
+    
+    if (dbStats.state !== 'CLOSED') {
+      res.set('X-System-Degraded', 'true');
+      response.message = 'System operating in degraded mode - using fallback data';
+    }
+    
+    res.json(response);
   } catch (error) {
-    console.log('Database unavailable, returning mock data:', (error as Error).message);
-    // Return mock data when database is unavailable
+    logger.error('Error fetching categories', error as Error);
+    
+    // Final fallback to static mock data
     const response: ApiResponse<CategoryType[]> = {
       success: true,
       data: mockCategories,
-      count: mockCategories.length
+      count: mockCategories.length,
+      timestamp: new Date().toISOString(),
+      message: 'Using static fallback data - system degraded'
     };
-    res.status(200).json(response);
+    
+    res.set('X-System-Degraded', 'true');
+    res.json(response);
   }
 };
 

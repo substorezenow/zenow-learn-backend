@@ -21,6 +21,10 @@ import { initializeSecurityServices } from './services/authService';
 import { cacheManager } from './utils/cacheManager';
 import { logger, requestLogger, errorLogger, performanceMonitor, logApplicationStart, logMemoryUsage } from './utils/logger';
 import { openApiSpec, serveOpenApiSpec, swaggerConfig } from './docs/openapi';
+import { resilienceMiddleware, resilientErrorHandler } from './utils/resilienceManager';
+import { gracefulDegradationMiddleware, healthCheckWithCircuitBreakers } from './utils/gracefulDegradation';
+import { gracefulDegradation } from './utils/gracefulDegradation';
+import { crashPrevention, serviceIsolation, memoryLeakPrevention } from './utils/crashPrevention';
 
 const app = express();
 
@@ -70,6 +74,10 @@ app.use(fileupload());
 // Enhanced logging middleware
 app.use(requestLogger);
 app.use(performanceMonitor);
+
+// Resilience and graceful degradation middleware
+app.use(resilienceMiddleware);
+app.use(gracefulDegradationMiddleware);
 
 // Global validation middleware
 app.use(sanitizeInput);
@@ -133,6 +141,10 @@ const initializeSecurity = async () => {
       securityMonitor
     });
 
+    // Initialize graceful degradation service
+    await gracefulDegradation.cacheFallbackData();
+    console.log('🔄 Graceful degradation service initialized');
+
     console.log('🔒 Security services initialized successfully');
     console.log('📦 Cache manager initialized successfully');
   } catch (error) {
@@ -140,8 +152,54 @@ const initializeSecurity = async () => {
   }
 };
 
+// Initialize crash prevention
+const initializeCrashPrevention = () => {
+  try {
+    // Setup crash prevention event listeners
+    crashPrevention.on('crash', (data) => {
+      logger.error('Crash detected', data);
+    });
+
+    crashPrevention.on('restart', (data) => {
+      logger.error('Process restart initiated', data);
+    });
+
+    crashPrevention.on('serviceIsolated', (data) => {
+      logger.warn('Service isolated', data);
+    });
+
+    crashPrevention.on('serviceRestored', (data) => {
+      logger.info('Service restored', data);
+    });
+
+    crashPrevention.on('memoryPressure', (data) => {
+      logger.warn('Memory pressure detected', data);
+    });
+
+    crashPrevention.on('memoryLeak', (data) => {
+      logger.warn('Memory leak detected', data);
+    });
+
+    // Set crash prevention settings
+    crashPrevention.setMaxCrashes(5); // Allow 5 crashes before restart
+    crashPrevention.setCrashWindow(60000); // 1 minute window
+
+    // Set memory threshold (500MB)
+    memoryLeakPrevention.setMemoryThreshold(500 * 1024 * 1024);
+
+    console.log('🛡️ Crash prevention system initialized');
+    console.log('📊 Memory leak prevention started');
+    console.log('🔒 Service isolation manager ready');
+  } catch (error) {
+    console.error('❌ Crash prevention initialization failed:', error);
+  }
+};
+
 // Initialize security services
 initializeSecurity();
+
+// Initialize crash prevention
+initializeCrashPrevention();
 
 // CSRF protection for state-changing operations (temporarily disabled)
 // app.use('/api/admin', CSRFMiddleware.checkCSRF);
@@ -171,8 +229,40 @@ app.get('/api/test', (req, res) => {
   });
 });
 
-// Health check endpoint with graceful degradation
-app.get('/api/health', (req, res) => {
+// Enhanced health check with circuit breaker status
+// Enhanced health check with circuit breakers
+app.get('/api/health', healthCheckWithCircuitBreakers);
+
+// Crash prevention health endpoint
+app.get('/api/health/crash-prevention', (req, res) => {
+  try {
+    const crashStats = crashPrevention.getCrashStats();
+    const memoryStats = memoryLeakPrevention.getMemoryStats();
+    const serviceStatuses = serviceIsolation.getAllServiceStatuses();
+
+    res.json({
+      success: true,
+      data: {
+        crashPrevention: crashStats,
+        memoryLeakPrevention: memoryStats,
+        serviceIsolation: serviceStatuses,
+        uptime: process.uptime(),
+        nodeVersion: process.version,
+        platform: process.platform
+      },
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get crash prevention status',
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// Legacy health check endpoint (for backward compatibility)
+app.get('/api/health-legacy', (req, res) => {
   const healthStatus = {
     status: 'ok',
     timestamp: new Date().toISOString(),
@@ -219,8 +309,9 @@ app.get('/api/admin/security-dashboard', async (req, res) => {
   }
 });
 
-// Enhanced error handling with logging
+// Enhanced error handling with logging and resilience
 app.use(errorLogger);
+app.use(resilientErrorHandler);
 app.use(errorHandler);
 
 const PORT = config.port || 8080;
@@ -256,10 +347,12 @@ try {
 // Graceful shutdown handling
 process.on('SIGTERM', () => {
   logger.info('SIGTERM received, shutting down gracefully');
+  crashPrevention.emit('shutdown', { signal: 'SIGTERM' });
   process.exit(0);
 });
 
 process.on('SIGINT', () => {
   logger.info('SIGINT received, shutting down gracefully');
+  crashPrevention.emit('shutdown', { signal: 'SIGINT' });
   process.exit(0);
 });

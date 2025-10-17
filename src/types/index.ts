@@ -125,6 +125,7 @@ export interface ApiResponse<T = any> {
   error?: string;
   message?: string;
   count?: number;
+  timestamp?: string;
 }
 
 export interface PaginatedResponse<T> extends ApiResponse<T[]> {

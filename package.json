@@ -21,7 +21,9 @@
     "test:integration": "jest --testPathPattern=integration",
     "test:unit": "jest --testPathPattern=unit",
     "test:e2e": "jest --testPathPattern=e2e",
-    "test:db": "node test-db-connection.js"
+    "test:db": "node test-db-connection.js",
+    "demo:resilience": "node demo-resilience.js",
+    "demo:crash-prevention": "node demo-crash-prevention.js"
   },
   "dependencies": {
     "bcryptjs": "^3.0.2",
