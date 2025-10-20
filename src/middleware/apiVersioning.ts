@@ -61,8 +61,9 @@ export const apiVersionMiddleware = (req: Request, res: Response, next: NextFunc
     version = customVersion;
   }
   
-  // Validate version
-  if (!API_VERSIONS[version]) {
+  // Only validate version if it was explicitly specified
+  // Allow non-versioned paths to use default version
+  if (version !== CURRENT_API_VERSION && !API_VERSIONS[version]) {
     res.status(400).json({
       success: false,
       error: `Unsupported API version: ${version}`,
