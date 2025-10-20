@@ -154,7 +154,8 @@ export const getFieldById = async (req: Request, res: Response): Promise<void> =
   try {
     const { id } = req.params;
     const fieldModel = new Field();
-    const field = await fieldModel.getFieldById(parseInt(id));
+    // Handle large IDs by passing as string instead of parseInt
+    const field = await fieldModel.getFieldById(id as any);
     
     if (!field) {
       const response: ApiResponse = {
@@ -313,10 +314,11 @@ export const enrollInCourse = async (req: Request, res: Response): Promise<void>
     const existingEnrollment = await courseModel.getUserEnrollment(userId, id);
     if (existingEnrollment) {
       const response: ApiResponse = {
-        success: false,
-        error: 'User is already enrolled in this course'
+        success: true,
+        data: existingEnrollment,
+        message: 'User is already enrolled in this course'
       };
-      res.status(400).json(response);
+      res.status(200).json(response);
       return;
     }
     
@@ -329,6 +331,33 @@ export const enrollInCourse = async (req: Request, res: Response): Promise<void>
       message: 'Successfully enrolled in course'
     };
     res.status(201).json(response);
+  } catch (error) {
+    const response: ApiResponse = {
+      success: false,
+      error: (error as Error).message
+    };
+    res.status(500).json(response);
+  }
+};
+
+export const getEnrollmentStatus = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const userId = req.user!.id; // Assuming user is authenticated
+    
+    const courseModel = new Course();
+    
+    // Check if user is enrolled
+    const enrollment = await courseModel.getUserEnrollment(userId, id);
+    
+    const response: ApiResponse = {
+      success: true,
+      data: {
+        isEnrolled: !!enrollment,
+        enrollment: enrollment || null
+      }
+    };
+    res.status(200).json(response);
   } catch (error) {
     const response: ApiResponse = {
       success: false,

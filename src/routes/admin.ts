@@ -24,8 +24,26 @@ import {
   // Statistics
   getAdminStats
 } from '../controllers/adminController';
+
+import {
+  // Students
+  getAllStudents,
+  getStudentStats,
+  getStudentById,
+  updateStudentStatus
+} from '../controllers/studentController';
+
+import {
+  // Enrollments
+  getAllEnrollments,
+  getEnrollmentStats,
+  getEnrollmentById,
+  updateEnrollmentStatus,
+  deleteEnrollment
+} from '../controllers/enrollmentController';
 import { SecurityMonitor } from '../services/securityMonitor';
 import * as migrationController from '../controllers/migrationController';
+import { dbManager } from '../utils/databaseManager';
 
 const router = express.Router();
 
@@ -219,6 +237,29 @@ router.delete('/modules/:moduleId', requireAdminCookie, async (req, res) => {
     });
   }
 });
+
+// ==================== ENROLLMENTS ADMIN ROUTES ====================
+router.get('/enrollments', requireAdminCookie, getAllEnrollments);
+router.get('/enrollments/stats', requireAdminCookie, getEnrollmentStats);
+router.get('/enrollments/:id', requireAdminCookie, getEnrollmentById);
+router.put('/enrollments/:id/status', 
+  requireAdminCookie, 
+  validateContentType(),
+  sanitizeInput,
+  updateEnrollmentStatus
+);
+router.delete('/enrollments/:id', requireAdminCookie, deleteEnrollment);
+
+// ==================== STUDENTS ADMIN ROUTES ====================
+router.get('/students', requireAdminCookie, getAllStudents);
+router.get('/students/stats', requireAdminCookie, getStudentStats);
+router.get('/students/:id', requireAdminCookie, getStudentById);
+router.put('/students/:id/status', 
+  requireAdminCookie, 
+  validateContentType(),
+  sanitizeInput,
+  updateStudentStatus
+);
 
 // ==================== FILE UPLOAD ADMIN ROUTES ====================
 router.post('/upload', requireAdminCookie, async (req, res) => {

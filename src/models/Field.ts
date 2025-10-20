@@ -27,7 +27,7 @@ export class Field {
     }
   }
 
-  async getFieldById(id: number): Promise<FieldType | null> {
+  async getFieldById(id: number | string): Promise<FieldType | null> {
     try {
       const query = `
         SELECT f.id, f.name, f.slug, f.description, f.icon_url, f.banner_image,

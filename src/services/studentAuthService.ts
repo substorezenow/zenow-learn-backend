@@ -578,15 +578,20 @@ export class StudentAuthService {
   }
 
   /**
-   * Generate unique student ID
+   * Generate unique student ID (supports billions of students)
+   * Format: STU + 10-digit number (STU0000000001 to STU9999999999)
+   * Capacity: 9,999,999,999 students
    */
   private async generateStudentId(): Promise<string> {
     let studentId: string;
     let exists = true;
+    let attempts = 0;
+    const maxAttempts = 100; // Prevent infinite loops
     
-    while (exists) {
-      const randomNum = Math.floor(Math.random() * 9999) + 1;
-      studentId = `STU${randomNum.toString().padStart(4, '0')}`;
+    while (exists && attempts < maxAttempts) {
+      // Generate random number between 1 and 9,999,999,999
+      const randomNum = Math.floor(Math.random() * 9999999999) + 1;
+      studentId = `STU${randomNum.toString().padStart(10, '0')}`;
       
       const result = await dbManager.query(
         'SELECT id FROM students WHERE student_id = $1',
@@ -594,6 +599,25 @@ export class StudentAuthService {
       );
       
       exists = result.rows.length > 0;
+      attempts++;
+    }
+    
+    // If we hit max attempts, fallback to timestamp-based ID
+    if (attempts >= maxAttempts) {
+      const timestamp = Date.now();
+      studentId = `STU${timestamp.toString().padStart(10, '0')}`;
+      
+      // Double-check this doesn't exist (very unlikely with timestamp)
+      const result = await dbManager.query(
+        'SELECT id FROM students WHERE student_id = $1',
+        [studentId]
+      );
+      
+      if (result.rows.length > 0) {
+        // Last resort: add random suffix
+        const randomSuffix = Math.floor(Math.random() * 999);
+        studentId = `STU${timestamp.toString().padStart(7, '0')}${randomSuffix.toString().padStart(3, '0')}`;
+      }
     }
     
     return studentId!;

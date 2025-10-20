@@ -4,7 +4,7 @@
 -- Create Students table
 CREATE TABLE IF NOT EXISTS students (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    student_id VARCHAR(50) UNIQUE NOT NULL, -- Custom student ID (e.g., STU001, STU002)
+    student_id VARCHAR(15) UNIQUE NOT NULL, -- Custom student ID (e.g., STU0000000001, STU0000000002)
     email VARCHAR(255) UNIQUE NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
     first_name VARCHAR(100) NOT NULL,
@@ -81,7 +81,7 @@ INSERT INTO students (
     is_active, 
     email_verified
 ) VALUES (
-    'STU001',
+    'STU0000000001',
     'student@zenow.com',
     '$2b$12$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', -- student123
     'John',

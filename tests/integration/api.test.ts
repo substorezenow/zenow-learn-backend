@@ -216,6 +216,104 @@ describe('Admin API', () => {
   });
 });
 
+describe('Course Enrollment API', () => {
+  let pool: Pool;
+  let studentToken: string;
+  let courseId: string;
+
+  beforeAll(async () => {
+    pool = (global as any).testPool;
+    
+    // Create test student user
+    const bcrypt = require('bcryptjs');
+    const hashedPassword = await bcrypt.hash('studentpassword', 10);
+    
+    await pool.query(`
+      INSERT INTO users (username, password, role, is_active)
+      VALUES ('student', $1, 'student', true)
+    `, [hashedPassword]);
+
+    // Create test course
+    const courseResult = await pool.query(`
+      INSERT INTO courses (title, slug, description, is_published, field_id)
+      VALUES ('Test Course', 'test-course', 'Test course description', true, 1)
+      RETURNING id
+    `);
+    courseId = courseResult.rows[0].id;
+
+    // Login as student
+    const loginResponse = await request(app)
+      .post('/api/auth/login')
+      .send({
+        username: 'student',
+        password: 'studentpassword'
+      });
+
+    studentToken = loginResponse.body.token;
+  });
+
+  it('should check enrollment status for non-enrolled user', async () => {
+    const response = await request(app)
+      .get(`/api/courses/${courseId}/enrollment-status`)
+      .set('Authorization', `Bearer ${studentToken}`)
+      .expect(200);
+
+    expect(response.body.success).toBe(true);
+    expect(response.body.data.isEnrolled).toBe(false);
+    expect(response.body.data.enrollment).toBe(null);
+  });
+
+  it('should enroll user in course', async () => {
+    const response = await request(app)
+      .post(`/api/courses/${courseId}/enroll`)
+      .set('Authorization', `Bearer ${studentToken}`)
+      .expect(201);
+
+    expect(response.body.success).toBe(true);
+    expect(response.body.data).toHaveProperty('user_id');
+    expect(response.body.data).toHaveProperty('course_id', courseId);
+    expect(response.body.message).toBe('Successfully enrolled in course');
+  });
+
+  it('should check enrollment status for enrolled user', async () => {
+    const response = await request(app)
+      .get(`/api/courses/${courseId}/enrollment-status`)
+      .set('Authorization', `Bearer ${studentToken}`)
+      .expect(200);
+
+    expect(response.body.success).toBe(true);
+    expect(response.body.data.isEnrolled).toBe(true);
+    expect(response.body.data.enrollment).toHaveProperty('user_id');
+    expect(response.body.data.enrollment).toHaveProperty('course_id', courseId);
+  });
+
+  it('should handle duplicate enrollment gracefully', async () => {
+    const response = await request(app)
+      .post(`/api/courses/${courseId}/enroll`)
+      .set('Authorization', `Bearer ${studentToken}`)
+      .expect(200);
+
+    expect(response.body.success).toBe(true);
+    expect(response.body.message).toBe('User is already enrolled in this course');
+  });
+
+  it('should reject enrollment without authentication', async () => {
+    const response = await request(app)
+      .post(`/api/courses/${courseId}/enroll`)
+      .expect(401);
+
+    expect(response.body).toHaveProperty('error');
+  });
+
+  it('should reject enrollment status check without authentication', async () => {
+    const response = await request(app)
+      .get(`/api/courses/${courseId}/enrollment-status`)
+      .expect(401);
+
+    expect(response.body).toHaveProperty('error');
+  });
+});
+
 describe('Error Handling', () => {
   it('should handle invalid JSON', async () => {
     const response = await request(app)

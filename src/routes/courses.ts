@@ -15,11 +15,12 @@ import {
   getCourseById,
   getCourseBySlug,
   enrollInCourse,
+  getEnrollmentStatus,
   createCourse,
   updateCourse
 } from '../controllers/courseController';
 
-import { authenticateToken } from '../middleware/authMiddleware';
+import { authenticateStudent } from '../middleware/studentAuth';
 
 const router = express.Router();
 
@@ -42,7 +43,10 @@ router.get('/courses/slug/:slug', getCourseBySlug);
 
 // ==================== PROTECTED ROUTES (Require Authentication) ====================
 
-// User enrollment (requires user authentication)
-router.post('/courses/:id/enroll', authenticateToken, enrollInCourse);
+// User enrollment (requires student authentication)
+router.post('/courses/:id/enroll', authenticateStudent, enrollInCourse);
+
+// Check enrollment status (requires student authentication)
+router.get('/courses/:id/enrollment-status', authenticateStudent, getEnrollmentStatus);
 
 export default router;
