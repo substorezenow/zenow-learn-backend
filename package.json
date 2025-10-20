@@ -22,18 +22,10 @@
     "test:unit": "jest --testPathPattern=unit",
     "test:e2e": "jest --testPathPattern=e2e",
     "test:db": "node test-db-connection.js",
-    "test:r2": "node test-r2-connection.js",
     "demo:resilience": "node demo-resilience.js",
     "demo:crash-prevention": "node demo-crash-prevention.js"
   },
   "dependencies": {
-    "aws-sdk": "^2.1691.0",
-    "@aws-sdk/client-s3": "^3.658.1",
-    "@aws-sdk/s3-request-presigner": "^3.658.1",
-    "lru-cache": "^10.2.0",
-    "p-map": "^7.0.0",
-    "multer": "^1.4.5-lts.1",
-    "ffmpeg-static": "^5.2.0",
     "bcryptjs": "^3.0.2",
     "body-parser": "^2.2.0",
     "cookie-parser": "^1.4.7",
@@ -56,8 +48,6 @@
     "@paypal/checkout-server-sdk": "^1.0.3"
   },
   "devDependencies": {
-    "@types/aws-sdk": "^2.7.0",
-    "@types/multer": "^1.4.11",
     "@types/bcryptjs": "^2.4.6",
     "@types/cookie-parser": "^1.4.9",
     "@types/cors": "^2.8.17",
