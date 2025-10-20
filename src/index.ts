@@ -25,7 +25,7 @@ import { resilienceMiddleware, resilientErrorHandler } from './utils/resilienceM
 import { gracefulDegradationMiddleware, healthCheckWithCircuitBreakers } from './utils/gracefulDegradation';
 import { gracefulDegradation } from './utils/gracefulDegradation';
 import { crashPrevention, serviceIsolation, memoryLeakPrevention } from './utils/crashPrevention';
-import { initializeR2, signCourseUrlsMiddleware, signProfileUrlsMiddleware, signCategoryUrlsMiddleware, r2Routes, convertToWorkerProxyMiddleware } from './utils/cloudflare';
+// import { initializeR2, signCourseUrlsMiddleware, signProfileUrlsMiddleware, signCategoryUrlsMiddleware, r2Routes, convertToWorkerProxyMiddleware } from './utils/cloudflare';
 
 const app = express();
 
@@ -203,28 +203,28 @@ initializeSecurity();
 initializeCrashPrevention();
 
 // Initialize Cloudflare R2
-const initializeR2Services = async () => {
-  try {
-    console.log('🔧 Initializing Cloudflare R2 utilities...');
-    const r2Initialized = await initializeR2();
-    if (r2Initialized) {
-      console.log('✅ Cloudflare R2 services initialized successfully');
-    } else {
-      console.log('⚠️ Cloudflare R2 services initialization failed - file upload features will be unavailable');
-      console.log('💡 To fix R2 issues:');
-      console.log('   1. Check your R2 credentials in .env file');
-      console.log('   2. Verify R2 bucket exists and is accessible');
-      console.log('   3. Ensure R2 API token has proper permissions');
-      console.log('   4. Check R2 endpoint URL format');
-    }
-  } catch (error) {
-    console.error('❌ Failed to initialize R2 services:', error);
-    console.log('⚠️ Cloudflare R2 services initialization failed - file upload features will be unavailable');
-  }
-};
+// const initializeR2Services = async () => {
+//   try {
+//     console.log('🔧 Initializing Cloudflare R2 utilities...');
+//     const r2Initialized = await initializeR2();
+//     if (r2Initialized) {
+//       console.log('✅ Cloudflare R2 services initialized successfully');
+//     } else {
+//       console.log('⚠️ Cloudflare R2 services initialization failed - file upload features will be unavailable');
+//       console.log('💡 To fix R2 issues:');
+//       console.log('   1. Check your R2 credentials in .env file');
+//       console.log('   2. Verify R2 bucket exists and is accessible');
+//       console.log('   3. Ensure R2 API token has proper permissions');
+//       console.log('   4. Check R2 endpoint URL format');
+//     }
+//   } catch (error) {
+//     console.error('❌ Failed to initialize R2 services:', error);
+//     console.log('⚠️ Cloudflare R2 services initialization failed - file upload features will be unavailable');
+//   }
+// };
 
 // Initialize R2 services
-initializeR2Services();
+// initializeR2Services();
 
 // CSRF protection for state-changing operations (temporarily disabled)
 // app.use('/api/admin', CSRFMiddleware.checkCSRF);
@@ -238,23 +238,23 @@ app.get('/api/docs/openapi.json', serveOpenApiSpec);
 app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(openApiSpec, swaggerConfig));
 
 // R2 file upload routes
-app.use('/api/files', r2Routes);
+// app.use('/api/files', r2Routes);
 
 // Apply R2 Worker Proxy middleware to convert signed URLs to worker proxy URLs
-app.use('/api/courses', convertToWorkerProxyMiddleware());
-app.use('/api/categories', convertToWorkerProxyMiddleware());
-app.use('/api/fields', convertToWorkerProxyMiddleware());
-app.use('/api/admin/courses', convertToWorkerProxyMiddleware());
-app.use('/api/admin/categories', convertToWorkerProxyMiddleware());
-app.use('/api/admin/fields', convertToWorkerProxyMiddleware());
+// app.use('/api/courses', convertToWorkerProxyMiddleware());
+// app.use('/api/categories', convertToWorkerProxyMiddleware());
+// app.use('/api/fields', convertToWorkerProxyMiddleware());
+// app.use('/api/admin/courses', convertToWorkerProxyMiddleware());
+// app.use('/api/admin/categories', convertToWorkerProxyMiddleware());
+// app.use('/api/admin/fields', convertToWorkerProxyMiddleware());
 
 // Apply R2 URL signing middleware as fallback (if worker proxy is not configured)
-app.use('/api/courses', signCourseUrlsMiddleware);
-app.use('/api/categories', signCategoryUrlsMiddleware);
-app.use('/api/fields', signCategoryUrlsMiddleware);
-app.use('/api/admin/courses', signCourseUrlsMiddleware);
-app.use('/api/admin/categories', signCategoryUrlsMiddleware);
-app.use('/api/admin/fields', signCategoryUrlsMiddleware);
+// app.use('/api/courses', signCourseUrlsMiddleware);
+// app.use('/api/categories', signCategoryUrlsMiddleware);
+// app.use('/api/fields', signCategoryUrlsMiddleware);
+// app.use('/api/admin/courses', signCourseUrlsMiddleware);
+// app.use('/api/admin/categories', signCategoryUrlsMiddleware);
+// app.use('/api/admin/fields', signCategoryUrlsMiddleware);
 
 // API routes with versioning support
 app.use('/api', routes);
