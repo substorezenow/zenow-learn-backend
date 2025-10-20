@@ -23,7 +23,7 @@ export class Course {
                c.enrolled_students, c.created_at, c.updated_at,
                f.name as field_name, f.slug as field_slug,
                cat.name as category_name, cat.slug as category_slug,
-               u.username as instructor_name, u.email as instructor_email
+               u.username as instructor_name, u.username as instructor_email
         FROM courses c
         JOIN fields f ON c.field_id = f.id
         JOIN categories cat ON f.category_id = cat.id
@@ -79,7 +79,7 @@ export class Course {
     }
   }
 
-  async getCourseById(id: number): Promise<CourseType | null> {
+  async getCourseById(id: string | number): Promise<CourseType | null> {
     try {
       const query = `
         SELECT c.id, c.title, c.slug, c.description, c.short_description,
@@ -90,7 +90,7 @@ export class Course {
                c.enrolled_students, c.created_at, c.updated_at,
                f.name as field_name, f.slug as field_slug,
                cat.name as category_name, cat.slug as category_slug,
-               u.username as instructor_name, u.email as instructor_email
+               u.username as instructor_name, u.username as instructor_email
         FROM courses c
         JOIN fields f ON c.field_id = f.id
         JOIN categories cat ON f.category_id = cat.id
@@ -116,7 +116,7 @@ export class Course {
                c.enrolled_students, c.created_at, c.updated_at,
                f.name as field_name, f.slug as field_slug,
                cat.name as category_name, cat.slug as category_slug,
-               u.username as instructor_name, u.email as instructor_email
+               u.username as instructor_name, u.username as instructor_email
         FROM courses c
         JOIN fields f ON c.field_id = f.id
         JOIN categories cat ON f.category_id = cat.id

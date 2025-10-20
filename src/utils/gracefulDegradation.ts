@@ -83,7 +83,7 @@ export class GracefulDegradationService {
                  c.duration_hours, c.difficulty_level, c.price, c.is_free, c.is_published,
                  f.name as field_name, f.slug as field_slug,
                  cat.name as category_name, cat.slug as category_slug,
-                 u.username as instructor_name, u.email as instructor_email,
+                 u.username as instructor_name, u.username as instructor_email,
                  c.rating, c.total_ratings, c.enrolled_students,
                  c.created_at, c.updated_at
           FROM courses c

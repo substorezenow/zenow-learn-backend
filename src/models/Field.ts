@@ -116,7 +116,7 @@ export class Field {
     }
   }
 
-  async getCoursesByFieldId(fieldId: number): Promise<any[]> {
+  async getCoursesByFieldId(fieldId: string | number): Promise<any[]> {
     try {
       const query = `
         SELECT c.id, c.title, c.slug, c.description, c.short_description,
@@ -125,7 +125,7 @@ export class Field {
                c.instructor_id, c.prerequisites, c.learning_outcomes,
                c.course_modules, c.tags, c.rating, c.total_ratings,
                c.enrolled_students, c.created_at, c.updated_at,
-               u.username as instructor_name, u.email as instructor_email
+               u.username as instructor_name, u.username as instructor_email
         FROM courses c
         LEFT JOIN users u ON c.instructor_id = u.id
         WHERE c.field_id = $1 AND c.is_published = true

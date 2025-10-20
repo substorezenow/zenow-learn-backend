@@ -19,7 +19,7 @@ export class Category {
     }
   }
 
-  async getCategoryById(id: number): Promise<CategoryType | null> {
+  async getCategoryById(id: string | number): Promise<CategoryType | null> {
     try {
       const query = `
         SELECT id, name, slug, description, icon_url, banner_image, 
@@ -104,7 +104,7 @@ export class Category {
     }
   }
 
-  async getFieldsByCategoryId(categoryId: number): Promise<any[]> {
+  async getFieldsByCategoryId(categoryId: string | number): Promise<any[]> {
     try {
       const query = `
         SELECT f.id, f.name, f.slug, f.description, f.icon_url, f.banner_image,

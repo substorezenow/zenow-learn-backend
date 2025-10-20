@@ -2,6 +2,7 @@ import express from 'express';
 import authRoutes from './auth';
 import courseRoutes from './courses';
 import adminRoutes from './admin';
+import studentAuthRoutes from './studentAuth';
 import { apiVersionMiddleware, getApiInfo, getChangelog } from '../middleware/apiVersioning';
 
 const router = express.Router();
@@ -17,5 +18,6 @@ router.get('/changelog', getChangelog);
 router.use('/auth', authRoutes);
 router.use('/courses', courseRoutes);
 router.use('/admin', adminRoutes);
+router.use('/student-auth', studentAuthRoutes);
 
 export default router;

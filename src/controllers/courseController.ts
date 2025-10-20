@@ -83,7 +83,7 @@ export const getCategoryById = async (req: Request, res: Response): Promise<void
   try {
     const { id } = req.params;
     const categoryModel = new Category();
-    const category = await categoryModel.getCategoryById(parseInt(id));
+    const category = await categoryModel.getCategoryById(id);
     
     if (!category) {
       const response: ApiResponse = {
@@ -112,7 +112,7 @@ export const getFieldsByCategory = async (req: Request, res: Response): Promise<
   try {
     const { id } = req.params;
     const categoryModel = new Category();
-    const fields = await categoryModel.getFieldsByCategoryId(parseInt(id));
+    const fields = await categoryModel.getFieldsByCategoryId(id);
     
     const response: ApiResponse<FieldType[]> = {
       success: true,
@@ -183,7 +183,7 @@ export const getCoursesByField = async (req: Request, res: Response): Promise<vo
   try {
     const { id } = req.params;
     const fieldModel = new Field();
-    const courses = await fieldModel.getCoursesByFieldId(parseInt(id));
+    const courses = await fieldModel.getCoursesByFieldId(id);
     
     const response: ApiResponse<CourseType[]> = {
       success: true,
@@ -242,7 +242,7 @@ export const getCourseById = async (req: Request, res: Response): Promise<void> 
     if (!course) {
       // Cache miss - fetch from database
       const courseModel = new Course();
-      course = await courseModel.getCourseById(parseInt(id));
+      course = await courseModel.getCourseById(id);
       
       if (course) {
         // Cache the result
