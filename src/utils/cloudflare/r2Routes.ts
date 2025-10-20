@@ -41,7 +41,7 @@ export async function convertToHLS(inputPath: string, outputDir: string): Promis
     await execAsync(command);
     logger.info(`Video converted to HLS: ${outputDir}`);
   } catch (error) {
-    logger.error('FFmpeg conversion error:', error);
+    logger.error('FFmpeg conversion error:', error as Error);
     throw new Error('Video conversion failed');
   }
 }
@@ -57,7 +57,7 @@ export async function extractThumbnail(inputPath: string, outputPath: string): P
     await execAsync(command);
     logger.info(`Thumbnail extracted: ${outputPath}`);
   } catch (error) {
-    logger.error('Thumbnail extraction error:', error);
+    logger.error('Thumbnail extraction error:', error as Error);
     throw new Error('Thumbnail extraction failed');
   }
 }
@@ -71,7 +71,7 @@ export const deleteFolderRecursive = async (folderPath: string): Promise<void> =
     await fs.promises.rm(folderPath, { recursive: true, force: true });
     logger.info(`✅ Deleted folder: ${folderPath}`);
   } catch (err) {
-    logger.error(`❌ Failed to delete folder ${folderPath}`, err);
+    logger.error(`❌ Failed to delete folder ${folderPath}`, err as Error);
   }
 };
 
@@ -116,7 +116,7 @@ router.post("/upload-video", upload.single("video"), async (req, res) => {
     const videoUrl = getSignedUrl(`videos/${id}/output.m3u8`);
     const thumbnailUrl = getSignedUrl(`videos/${id}/thumbnail.jpg`);
 
-    res.json({
+    return res.json({
       success: true,
       data: {
         id,
@@ -129,8 +129,8 @@ router.post("/upload-video", upload.single("video"), async (req, res) => {
     });
 
   } catch (err) {
-    logger.error("❌ Error in /upload-video:", err);
-    res.status(500).json({
+    logger.error("❌ Error in /upload-video:", err as Error);
+    return res.status(500).json({
       success: false,
       error: "Video processing failed"
     });
@@ -141,7 +141,7 @@ router.post("/upload-video", upload.single("video"), async (req, res) => {
       if (thumbnailPath) await fs.promises.unlink(thumbnailPath);
       if (outputDir) await deleteFolderRecursive(outputDir);
     } catch (cleanupError) {
-      logger.error("Cleanup error:", cleanupError);
+      logger.error("Cleanup error:", cleanupError as Error);
     }
   }
 });
@@ -168,7 +168,7 @@ router.post("/upload-image", upload.single("image"), async (req, res) => {
     
     const imageUrl = getSignedUrl(key);
 
-    res.json({
+    return res.json({
       success: true,
       data: {
         id,
@@ -181,8 +181,8 @@ router.post("/upload-image", upload.single("image"), async (req, res) => {
     });
 
   } catch (err) {
-    logger.error("❌ Error in /upload-image:", err);
-    res.status(500).json({
+    logger.error("❌ Error in /upload-image:", err as Error);
+    return res.status(500).json({
       success: false,
       error: "Image upload failed"
     });
@@ -191,7 +191,7 @@ router.post("/upload-image", upload.single("image"), async (req, res) => {
     try {
       if (filePath) await fs.promises.unlink(filePath);
     } catch (cleanupError) {
-      logger.error("Cleanup error:", cleanupError);
+      logger.error("Cleanup error:", cleanupError as Error);
     }
   }
 });
@@ -218,7 +218,7 @@ router.post("/upload-document", upload.single("document"), async (req, res) => {
     
     const documentUrl = getSignedUrl(key);
 
-    res.json({
+    return res.json({
       success: true,
       data: {
         id,
@@ -231,8 +231,8 @@ router.post("/upload-document", upload.single("document"), async (req, res) => {
     });
 
   } catch (err) {
-    logger.error("❌ Error in /upload-document:", err);
-    res.status(500).json({
+    logger.error("❌ Error in /upload-document:", err as Error);
+    return res.status(500).json({
       success: false,
       error: "Document upload failed"
     });
@@ -241,14 +241,14 @@ router.post("/upload-document", upload.single("document"), async (req, res) => {
     try {
       if (filePath) await fs.promises.unlink(filePath);
     } catch (cleanupError) {
-      logger.error("Cleanup error:", cleanupError);
+      logger.error("Cleanup error:", cleanupError as Error);
     }
   }
 });
 
 // Multiple file upload endpoint
 router.post("/upload-multiple", upload.array("files", 10), async (req, res) => {
-  const files = req.files as Express.Multer.File[];
+  const files = req.files as unknown as Express.Multer.File[];
   const uploadedFiles: any[] = [];
   const errors: any[] = [];
 
@@ -290,12 +290,12 @@ router.post("/upload-multiple", upload.array("files", 10), async (req, res) => {
         try {
           await fs.promises.unlink(file.path);
         } catch (cleanupError) {
-          logger.error("Cleanup error:", cleanupError);
+          logger.error("Cleanup error:", cleanupError as Error);
         }
       }
     }
 
-    res.json({
+    return res.json({
       success: true,
       data: {
         uploadedFiles,
@@ -307,8 +307,8 @@ router.post("/upload-multiple", upload.array("files", 10), async (req, res) => {
     });
 
   } catch (err) {
-    logger.error("❌ Error in /upload-multiple:", err);
-    res.status(500).json({
+    logger.error("❌ Error in /upload-multiple:", err as Error);
+    return res.status(500).json({
       success: false,
       error: "Multiple file upload failed"
     });
@@ -332,14 +332,14 @@ router.delete("/delete/:key", async (req, res) => {
     // Delete from R2
     await deleteFolderFromR2(key);
 
-    res.json({
+    return res.json({
       success: true,
       message: "File deleted successfully"
     });
 
   } catch (err) {
-    logger.error("❌ Error in /delete:", err);
-    res.status(500).json({
+    logger.error("❌ Error in /delete:", err as Error);
+    return res.status(500).json({
       success: false,
       error: "File deletion failed"
     });
@@ -360,7 +360,7 @@ router.get("/info/:key", async (req, res) => {
 
     const signedUrl = getSignedUrl(key);
 
-    res.json({
+    return res.json({
       success: true,
       data: {
         key,
@@ -370,8 +370,8 @@ router.get("/info/:key", async (req, res) => {
     });
 
   } catch (err) {
-    logger.error("❌ Error in /info:", err);
-    res.status(500).json({
+    logger.error("❌ Error in /info:", err as Error);
+    return res.status(500).json({
       success: false,
       error: "Failed to get file info"
     });
