@@ -17,14 +17,8 @@ CREATE INDEX IF NOT EXISTS idx_student_refresh_tokens_token ON student_refresh_t
 CREATE INDEX IF NOT EXISTS idx_student_refresh_tokens_expires_at ON student_refresh_tokens(expires_at);
 CREATE INDEX IF NOT EXISTS idx_student_refresh_tokens_is_revoked ON student_refresh_tokens(is_revoked);
 
--- Create a function to clean up expired tokens
-CREATE OR REPLACE FUNCTION cleanup_expired_student_tokens()
-RETURNS void AS $$
-BEGIN
-    DELETE FROM student_refresh_tokens 
-    WHERE expires_at < NOW() OR is_revoked = true;
-END;
-$$ LANGUAGE plpgsql;
+-- Note: Token cleanup function skipped for CockroachDB compatibility
+-- The application will handle token cleanup manually or through scheduled jobs
 
 -- Create a scheduled job to clean up expired tokens (if pg_cron is available)
 -- This would need to be set up separately in production

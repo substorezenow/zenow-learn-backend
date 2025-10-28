@@ -4,6 +4,7 @@ import courseRoutes from './courses';
 import adminRoutes from './admin';
 import studentAuthRoutes from './studentAuth';
 import studentProfileRoutes from './studentProfile';
+import blogRoutes from './blogs';
 import { apiVersionMiddleware, getApiInfo, getChangelog } from '../middleware/apiVersioning';
 
 const router = express.Router();
@@ -21,5 +22,6 @@ router.use('/auth', authRoutes);
 router.use('/admin', adminRoutes);
 router.use('/student-auth', studentAuthRoutes);
 router.use('/student', studentProfileRoutes);
+router.use('/blogs', blogRoutes);
 
 export default router;

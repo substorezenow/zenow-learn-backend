@@ -2,6 +2,13 @@ import express from 'express';
 import { requireAdmin } from '../middleware/adminAuth';
 import { requireAdminCookie } from '../middleware/cookieAuth';
 import { validate, validationSchemas, sanitizeInput, validateContentType } from '../middleware/validation';
+import { 
+  getAdminProfile, 
+  updateAdminProfile, 
+  changeAdminPassword, 
+  uploadAdminProfileImage,
+  uploadProfileImageMiddleware 
+} from '../controllers/adminProfileController';
 import {
   // Categories
   createCategory,
@@ -32,6 +39,24 @@ import {
   getStudentById,
   updateStudentStatus
 } from '../controllers/studentController';
+
+import {
+  // Blog Categories
+  createBlogCategory,
+  getAllBlogCategoriesAdmin,
+  getBlogCategoryById,
+  updateBlogCategory,
+  deleteBlogCategory
+} from '../controllers/blogCategoryController';
+
+import {
+  // Blogs
+  createBlog,
+  getAllBlogsAdmin,
+  getBlogById,
+  updateBlog,
+  deleteBlog
+} from '../controllers/blogController';
 
 import {
   // Enrollments
@@ -261,7 +286,51 @@ router.put('/students/:id/status',
   updateStudentStatus
 );
 
-// ==================== FILE UPLOAD ADMIN ROUTES ====================
+// ==================== BLOG CATEGORIES ADMIN CRUD ====================
+router.get('/blog-categories', requireAdminCookie, getAllBlogCategoriesAdmin);
+router.post('/blog-categories', 
+  requireAdminCookie, 
+  validateContentType(),
+  sanitizeInput,
+  validate(validationSchemas.createBlogCategory),
+  createBlogCategory
+);
+router.get('/blog-categories/:id', requireAdminCookie, getBlogCategoryById);
+router.put('/blog-categories/:id', 
+  requireAdminCookie, 
+  validateContentType(),
+  sanitizeInput,
+  validate(validationSchemas.updateBlogCategory),
+  updateBlogCategory
+);
+router.delete('/blog-categories/:id', requireAdminCookie, deleteBlogCategory);
+
+// ==================== BLOGS ADMIN CRUD ====================
+router.get('/blogs', requireAdminCookie, getAllBlogsAdmin);
+router.post('/blogs', 
+  requireAdminCookie, 
+  validateContentType(),
+  sanitizeInput,
+  validate(validationSchemas.createBlog),
+  createBlog
+);
+router.get('/blogs/:id', requireAdminCookie, getBlogById);
+router.put('/blogs/:id', 
+  requireAdminCookie, 
+  validateContentType(),
+  sanitizeInput,
+  validate(validationSchemas.updateBlog),
+  updateBlog
+);
+router.delete('/blogs/:id', requireAdminCookie, deleteBlog);
+
+// ==================== ADMIN PROFILE ROUTES ====================
+router.get('/profile', requireAdminCookie, getAdminProfile);
+router.put('/profile', requireAdminCookie, updateAdminProfile);
+router.post('/profile/change-password', requireAdminCookie, changeAdminPassword);
+router.post('/profile/upload-image', requireAdminCookie, uploadProfileImageMiddleware, uploadAdminProfileImage);
+
+// ==================== FILE UPLOAD ====================
 router.post('/upload', requireAdminCookie, async (req, res) => {
   try {
     // Mock implementation - replace with actual file upload handling

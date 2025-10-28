@@ -142,6 +142,68 @@ export const validationSchemas = {
     limit: Joi.number().integer().min(1).max(100).optional()
   }),
 
+  // Blog Category schemas
+  createBlogCategory: Joi.object({
+    name: Joi.string().min(2).max(100).required(),
+    slug: Joi.string().min(2).max(100).pattern(/^[a-z0-9-]+$/).optional(),
+    description: Joi.string().max(1000).allow('').optional(),
+    icon_url: Joi.string().allow('').optional(),
+    banner_image: Joi.string().allow('').optional(),
+    sort_order: Joi.number().integer().min(0).optional(),
+    is_active: Joi.boolean().optional()
+  }),
+
+  updateBlogCategory: Joi.object({
+    name: Joi.string().min(2).max(100).optional(),
+    slug: Joi.string().min(2).max(100).pattern(/^[a-z0-9-]+$/).optional(),
+    description: Joi.string().max(1000).allow('').optional(),
+    icon_url: Joi.string().allow('').optional(),
+    banner_image: Joi.string().allow('').optional(),
+    sort_order: Joi.number().integer().min(0).optional(),
+    is_active: Joi.boolean().optional()
+  }),
+
+  // Blog schemas
+  createBlog: Joi.object({
+    title: Joi.string().min(2).max(200).required(),
+    slug: Joi.string().min(2).max(200).pattern(/^[a-z0-9-]+$/).optional(),
+    content: Joi.string().min(10).max(50000).required(),
+    excerpt: Joi.string().max(500).allow('').optional(),
+    featured_image: Joi.string().allow('').optional(),
+    author_id: Joi.string().uuid().allow('').optional(),
+    status: Joi.string().valid('draft', 'published', 'archived').optional(),
+    published_at: Joi.string().allow('').optional(),
+    tags: Joi.alternatives().try(
+      Joi.string().allow(''),
+      Joi.array().items(Joi.string())
+    ).optional(),
+    category_id: Joi.string().pattern(/^\d+$/).optional(),
+    read_time: Joi.alternatives().try(
+      Joi.number().integer().min(0).max(120),
+      Joi.string().pattern(/^\d+$/)
+    ).optional()
+  }),
+
+  updateBlog: Joi.object({
+    title: Joi.string().min(2).max(200).optional(),
+    slug: Joi.string().min(2).max(200).pattern(/^[a-z0-9-]+$/).optional(),
+    content: Joi.string().min(10).max(50000).optional(),
+    excerpt: Joi.string().max(500).allow('').optional(),
+    featured_image: Joi.string().allow('').optional(),
+    author_id: Joi.string().uuid().allow('').optional(),
+    status: Joi.string().valid('draft', 'published', 'archived').optional(),
+    published_at: Joi.string().allow('').optional(),
+    tags: Joi.alternatives().try(
+      Joi.string().allow(''),
+      Joi.array().items(Joi.string())
+    ).optional(),
+    category_id: Joi.string().pattern(/^\d+$/).optional(),
+    read_time: Joi.alternatives().try(
+      Joi.number().integer().min(0).max(120),
+      Joi.string().pattern(/^\d+$/)
+    ).optional()
+  }),
+
   // Migration schemas
   createMigration: Joi.object({
     name: Joi.string().min(3).max(100).pattern(/^[a-z0-9-]+$/).required()

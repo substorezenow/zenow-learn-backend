@@ -51,20 +51,8 @@ CREATE INDEX IF NOT EXISTS idx_students_created_at ON students(created_at);
 CREATE INDEX IF NOT EXISTS idx_students_country ON students(country);
 CREATE INDEX IF NOT EXISTS idx_students_city ON students(city);
 
--- Create a function to update the updated_at timestamp
-CREATE OR REPLACE FUNCTION update_students_updated_at_column()
-RETURNS TRIGGER AS $$
-BEGIN
-    NEW.updated_at = CURRENT_TIMESTAMP;
-    RETURN NEW;
-END;
-$$ language 'plpgsql';
-
--- Create trigger to automatically update updated_at
-CREATE TRIGGER update_students_updated_at 
-    BEFORE UPDATE ON students 
-    FOR EACH ROW 
-    EXECUTE FUNCTION update_students_updated_at_column();
+-- Note: Automatic updated_at trigger skipped for CockroachDB compatibility
+-- The application will handle updating the updated_at field manually in the controllers
 
 -- Insert sample student (password: student123)
 INSERT INTO students (

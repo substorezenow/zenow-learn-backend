@@ -2,15 +2,24 @@
 -- Description: Updates the student_id column to support 10-digit format (STU0000000001 to STU9999999999)
 -- Capacity: 9,999,999,999 students
 
--- Update the student_id column length to accommodate 10-digit format
--- Format: STU + 10 digits = 13 characters total
-ALTER TABLE students ALTER COLUMN student_id TYPE VARCHAR(15);
+-- CockroachDB compatible approach: Add new column, migrate data, then rename
+-- Step 1: Add new column with correct length
+ALTER TABLE students ADD COLUMN student_id_new VARCHAR(15);
 
--- Update any existing 4-digit student IDs to 10-digit format
+-- Step 2: Update any existing 4-digit student IDs to 10-digit format in the new column
 -- This will pad existing IDs like STU0001 to STU0000000001
 UPDATE students 
-SET student_id = 'STU' || LPAD(SUBSTRING(student_id FROM 4)::INTEGER::TEXT, 10, '0')
+SET student_id_new = 'STU' || LPAD(SUBSTRING(student_id FROM 4)::INTEGER::TEXT, 10, '0')
 WHERE LENGTH(student_id) = 7; -- Only update 4-digit format (STU + 4 digits = 7 chars)
+
+-- Step 3: Copy any other existing student_ids that are already in correct format
+UPDATE students 
+SET student_id_new = student_id
+WHERE student_id_new IS NULL;
+
+-- Step 4: Drop old column and rename new column
+ALTER TABLE students DROP COLUMN student_id;
+ALTER TABLE students RENAME COLUMN student_id_new TO student_id;
 
 -- Add a comment to document the new format
 COMMENT ON COLUMN students.student_id IS 'Custom student ID format: STU + 10-digit number (STU0000000001 to STU9999999999). Supports up to 9,999,999,999 students.';
