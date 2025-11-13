@@ -5,6 +5,9 @@ FROM node:18-alpine AS builder
 # Set working directory
 WORKDIR /app
 
+# Disable Husky install during container builds
+ENV HUSKY=0
+
 # Copy package files
 COPY package*.json ./
 
@@ -35,11 +38,14 @@ RUN addgroup -g 1001 -S nodejs && \
 # Set working directory
 WORKDIR /app
 
+# Disable Husky install during container builds
+ENV HUSKY=0
+
 # Copy package files
 COPY package*.json ./
 
 # Install only production dependencies
-RUN npm ci --only=production --silent && \
+RUN npm ci --omit=dev --silent && \
     npm cache clean --force
 
 # Copy built application from builder stage
