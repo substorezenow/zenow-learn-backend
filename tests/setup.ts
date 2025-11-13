@@ -1,5 +1,6 @@
 import { Pool } from 'pg';
-import Redis from 'redis';
+import { createClient } from 'redis';
+import type { RedisClientType } from 'redis';
 
 // Test environment setup
 export const setupTestEnvironment = async () => {
@@ -15,7 +16,7 @@ export const setupTestEnvironment = async () => {
   });
 
   // Initialize test Redis connection
-  const redis = Redis.createClient({
+  const redis: RedisClientType = createClient({
     url: process.env.TEST_REDIS_URL || 'redis://localhost:6379'
   });
 
@@ -24,7 +25,7 @@ export const setupTestEnvironment = async () => {
   return { pool, redis };
 };
 
-export const cleanupTestEnvironment = async (pool: Pool, redis: Redis) => {
+export const cleanupTestEnvironment = async (pool: Pool, redis: RedisClientType) => {
   await pool.end();
   await redis.quit();
 };

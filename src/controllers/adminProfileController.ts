@@ -36,15 +36,16 @@ export const uploadProfileImageMiddleware = upload.single('profile_image');
 /**
  * Get admin profile information
  */
-export const getAdminProfile = async (req: Request, res: Response) => {
+export const getAdminProfile = async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = req.user?.id;
     
     if (!userId) {
-      return res.status(401).json({
+      res.status(401).json({
         success: false,
         error: 'User not authenticated'
       });
+      return;
     }
 
     const query = `
@@ -68,11 +69,12 @@ export const getAdminProfile = async (req: Request, res: Response) => {
 
     const result = await dbManager.query(query, [userId]);
 
-    if (result.rows.length === 0) {
-      return res.status(404).json({
+     if (result.rows.length === 0) {
+      res.status(404).json({
         success: false,
         error: 'Admin profile not found'
       });
+      return;
     }
 
     const profile = result.rows[0];
@@ -89,6 +91,7 @@ export const getAdminProfile = async (req: Request, res: Response) => {
       success: true,
       data: profile
     });
+    return;
 
   } catch (error) {
     logger.error('Error fetching admin profile:', error as Error);
@@ -96,13 +99,14 @@ export const getAdminProfile = async (req: Request, res: Response) => {
       success: false,
       error: 'Failed to fetch profile'
     });
+    return;
   }
 };
 
 /**
  * Update admin profile information
  */
-export const updateAdminProfile = async (req: Request, res: Response) => {
+export const updateAdminProfile = async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = req.user?.id;
     const {
@@ -117,18 +121,20 @@ export const updateAdminProfile = async (req: Request, res: Response) => {
     } = req.body;
 
     if (!userId) {
-      return res.status(401).json({
+      res.status(401).json({
         success: false,
         error: 'User not authenticated'
       });
+      return;
     }
 
     // Validate required fields
     if (!username || !email) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         error: 'Username and email are required'
       });
+      return;
     }
 
     // Check if username or email already exists (excluding current user)
@@ -139,10 +145,11 @@ export const updateAdminProfile = async (req: Request, res: Response) => {
     const existingUser = await dbManager.query(existingUserQuery, [username, email, userId]);
 
     if (existingUser.rows.length > 0) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         error: 'Username or email already exists'
       });
+      return;
     }
 
     // Update profile
@@ -188,10 +195,11 @@ export const updateAdminProfile = async (req: Request, res: Response) => {
     ]);
 
     if (result.rows.length === 0) {
-      return res.status(404).json({
+      res.status(404).json({
         success: false,
         error: 'Admin profile not found'
       });
+      return;
     }
 
     const updatedProfile = result.rows[0];
@@ -220,6 +228,7 @@ export const updateAdminProfile = async (req: Request, res: Response) => {
       data: updatedProfile,
       message: 'Profile updated successfully'
     });
+    return;
 
   } catch (error) {
     logger.error('Error updating admin profile:', error as Error);
@@ -227,44 +236,49 @@ export const updateAdminProfile = async (req: Request, res: Response) => {
       success: false,
       error: 'Failed to update profile'
     });
+    return;
   }
 };
 
 /**
  * Change admin password
  */
-export const changeAdminPassword = async (req: Request, res: Response) => {
+export const changeAdminPassword = async (req: Request, res: Response):Promise<void> => {
   try {
     const userId = req.user?.id;
     const { current_password, new_password, confirm_password } = req.body;
 
     if (!userId) {
-      return res.status(401).json({
+      res.status(401).json({
         success: false,
         error: 'User not authenticated'
       });
+      return;
     }
 
     // Validate input
     if (!current_password || !new_password || !confirm_password) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         error: 'All password fields are required'
       });
+      return;
     }
 
     if (new_password !== confirm_password) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         error: 'New passwords do not match'
       });
+      return;
     }
 
     if (new_password.length < 8) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         error: 'New password must be at least 8 characters long'
       });
+      return;
     }
 
     // Get current user data
@@ -276,10 +290,11 @@ export const changeAdminPassword = async (req: Request, res: Response) => {
     const userResult = await dbManager.query(userQuery, [userId]);
 
     if (userResult.rows.length === 0) {
-      return res.status(404).json({
+      res.status(404).json({
         success: false,
         error: 'Admin user not found'
       });
+      return;
     }
 
     const user = userResult.rows[0];
@@ -300,10 +315,11 @@ export const changeAdminPassword = async (req: Request, res: Response) => {
         req.get('User-Agent') || 'Unknown'
       );
 
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         error: 'Current password is incorrect'
       });
+      return;
     }
 
     // Hash new password
@@ -342,6 +358,7 @@ export const changeAdminPassword = async (req: Request, res: Response) => {
       success: true,
       message: 'Password changed successfully'
     });
+    return;
 
   } catch (error) {
     logger.error('Error changing admin password:', error as Error);
@@ -349,28 +366,31 @@ export const changeAdminPassword = async (req: Request, res: Response) => {
       success: false,
       error: 'Failed to change password'
     });
+    return;
   }
 };
 
 /**
  * Upload admin profile image
  */
-export const uploadAdminProfileImage = async (req: Request, res: Response) => {
+export const uploadAdminProfileImage = async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = req.user?.id;
 
     if (!userId) {
-      return res.status(401).json({
+      res.status(401).json({
         success: false,
         error: 'User not authenticated'
       });
+      return;
     }
 
     if (!req.file) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         error: 'No image file provided'
       });
+      return;
     }
 
     // Create uploads directory if it doesn't exist
@@ -416,10 +436,11 @@ export const uploadAdminProfileImage = async (req: Request, res: Response) => {
     const result = await dbManager.query(updateQuery, [relativeUrl, userId]);
 
     if (result.rows.length === 0) {
-      return res.status(404).json({
+      res.status(404).json({
         success: false,
         error: 'Admin profile not found'
       });
+      return;
     }
 
     const updatedProfile = result.rows[0];
@@ -448,6 +469,7 @@ export const uploadAdminProfileImage = async (req: Request, res: Response) => {
       data: updatedProfile,
       message: 'Profile image uploaded successfully'
     });
+    return;
 
   } catch (error) {
     logger.error('Error uploading admin profile image:', error as Error);
@@ -455,5 +477,6 @@ export const uploadAdminProfileImage = async (req: Request, res: Response) => {
       success: false,
       error: 'Failed to upload profile image'
     });
+    return;
   }
 };

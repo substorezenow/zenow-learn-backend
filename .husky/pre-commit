@@ -1,0 +1,9 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+# Fast, reliable local checks for commits
+# 1) TypeScript type-check (no emit)
+npx tsc -p tsconfig.json --noEmit || exit 1
+
+# 2) Unit tests only (skip integration/e2e which require external services)
+npm run test:unit --silent || exit 1
