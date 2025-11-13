@@ -12,7 +12,7 @@ ENV HUSKY=0
 COPY package*.json ./
 
 # Install ALL dependencies (including dev dependencies for build)
-RUN npm ci --silent
+RUN npm ci --silent --ignore-scripts
 
 # Copy source code
 COPY . .
@@ -45,7 +45,7 @@ ENV HUSKY=0
 COPY package*.json ./
 
 # Install only production dependencies
-RUN npm ci --omit=dev --silent && \
+RUN npm ci --omit=dev --silent --ignore-scripts && \
     npm cache clean --force
 
 # Copy built application from builder stage
