@@ -6,9 +6,10 @@ export class DatabaseManager {
   private pool: Pool | null = null;
   private isConnected = false;
   private retryCount = 0;
-  private maxRetries = 5;
+  // Deprecated: retries are now infinite; kept for compatibility
+  private maxRetries = Number.POSITIVE_INFINITY;
   private retryDelay = 1000; // Start with 1 second
-  private maxRetryDelay = 30000; // Max 30 seconds
+  private maxRetryDelay = 300000; // Max 5 minutes
   private healthCheckInterval: NodeJS.Timeout | null = null;
   private connectionAttempts = 0;
 
@@ -30,87 +31,81 @@ export class DatabaseManager {
   }
 
   private async connectWithRetry(): Promise<void> {
-    this.connectionAttempts++;
-    
-    try {
-      console.log(`🔄 Attempting database connection (attempt ${this.connectionAttempts}/${this.maxRetries})...`);
-      
-      if (process.env.COCKROACH_URL) {
-        this.pool = new Pool({
-          connectionString: process.env.COCKROACH_URL,
-          ssl: { rejectUnauthorized: false },
-          max: 20, // Maximum number of clients in the pool
-          min: 5,  // Minimum number of clients in the pool
-          idleTimeoutMillis: 30000, // Close idle clients after 30 seconds
-          connectionTimeoutMillis: 10000, // Increased to 10 seconds
-          maxUses: 7500, // Close (and replace) a connection after it has been used 7500 times
-        });
-      } else {
-        this.pool = new Pool({
-          host: process.env.COCKROACH_HOST || 'localhost',
-          port: parseInt(process.env.COCKROACH_PORT || '26257'),
-          user: process.env.COCKROACH_USER || 'root',
-          password: process.env.COCKROACH_PASS || '',
-          database: process.env.COCKROACH_DB || 'defaultdb',
-          ssl: process.env.COCKROACH_SSL === 'true' ? { rejectUnauthorized: false } : false,
-          max: 20,
-          min: 5,
-          idleTimeoutMillis: 30000,
-          connectionTimeoutMillis: 10000, // Increased to 10 seconds
-          maxUses: 7500,
-        });
-      }
+    // Retry indefinitely with exponential backoff until a successful connection
+    while (true) {
+      this.connectionAttempts++;
+      try {
+        console.log(`🔄 Attempting database connection (attempt ${this.connectionAttempts})...`);
 
-      // Test the connection with timeout
-      const client = await Promise.race([
-        this.pool.connect(),
-        new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Connection timeout')), 15000)
-        )
-      ]) as PoolClient;
-      
-      console.log('✅ Database pool connected successfully');
-      client.release();
-      this.isConnected = true;
-      this.retryCount = 0; // Reset retry count on successful connection
-      this.retryDelay = 1000; // Reset retry delay
-      
-      // Start health monitoring
-      this.startHealthMonitoring();
-      
-    } catch (error) {
-      console.error(`❌ Database connection failed (attempt ${this.connectionAttempts}):`, error);
-      
-      // Clean up failed pool
-      if (this.pool) {
-        try {
-          await this.pool.end();
-        } catch (cleanupError) {
-          console.error('Error cleaning up failed pool:', cleanupError);
+        if (process.env.COCKROACH_URL) {
+          this.pool = new Pool({
+            connectionString: process.env.COCKROACH_URL,
+            ssl: { rejectUnauthorized: false },
+            max: 20,
+            min: 5,
+            idleTimeoutMillis: 30000,
+            connectionTimeoutMillis: 10000,
+            maxUses: 7500,
+          });
+        } else {
+          this.pool = new Pool({
+            host: process.env.COCKROACH_HOST || 'localhost',
+            port: parseInt(process.env.COCKROACH_PORT || '26257'),
+            user: process.env.COCKROACH_USER || 'root',
+            password: process.env.COCKROACH_PASS || '',
+            database: process.env.COCKROACH_DB || 'defaultdb',
+            ssl: process.env.COCKROACH_SSL === 'true' ? { rejectUnauthorized: false } : false,
+            max: 20,
+            min: 5,
+            idleTimeoutMillis: 30000,
+            connectionTimeoutMillis: 10000,
+            maxUses: 7500,
+          });
         }
-        this.pool = null;
-      }
-      
-      this.isConnected = false;
-      
-      // Retry logic
-      if (this.retryCount < this.maxRetries) {
+
+        // Test the connection with timeout
+        const client = await Promise.race([
+          this.pool.connect(),
+          new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('Connection timeout')), 15000)
+          )
+        ]) as PoolClient;
+
+        console.log('✅ Database pool connected successfully');
+        client.release();
+        this.isConnected = true;
+        this.retryCount = 0; // Reset retry count on successful connection
+        this.retryDelay = 1000; // Reset retry delay
+
+        // Start health monitoring
+        this.startHealthMonitoring();
+        return; // Exit after successful connection
+      } catch (error) {
+        console.error(`❌ Database connection failed (attempt ${this.connectionAttempts}):`, error);
+
+        // Clean up failed pool
+        if (this.pool) {
+          try {
+            await this.pool.end();
+          } catch (cleanupError) {
+            console.error('Error cleaning up failed pool:', cleanupError);
+          }
+          this.pool = null;
+        }
+
+        this.isConnected = false;
+
+        // Increment retry count and wait before next attempt
         this.retryCount++;
-        console.log(`🔄 Retrying in ${this.retryDelay}ms... (${this.retryCount}/${this.maxRetries})`);
-        
+        console.log(`🔄 Retrying in ${Math.round(this.retryDelay)}ms... (retry #${this.retryCount})`);
         await this.sleep(this.retryDelay);
-        
-        // Exponential backoff with jitter
+
+        // Exponential backoff with jitter up to maxRetryDelay
         this.retryDelay = Math.min(
           this.retryDelay * 2 + Math.random() * 1000,
           this.maxRetryDelay
         );
-        
-        return this.connectWithRetry();
-      } else {
-        console.error('❌ Max retry attempts reached. Database connection failed permanently.');
-        console.log('🔄 Continuing with degraded functionality...');
-        throw new Error(`Database connection failed after ${this.maxRetries} attempts`);
+        // Loop continues for next attempt
       }
     }
   }
