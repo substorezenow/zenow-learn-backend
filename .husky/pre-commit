@@ -5,5 +5,5 @@
 # 1) TypeScript type-check (no emit)
 npx tsc -p tsconfig.json --noEmit || exit 1
 
-# 2) Unit tests only (skip integration/e2e which require external services)
-npm run test:unit --silent || exit 1
+# 2) Skip unit/integration tests locally; run them in CI instead
+echo "Skipping tests in pre-commit; CI runs full suite"
