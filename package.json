@@ -6,7 +6,7 @@
   "scripts": {
     "build": "tsc",
     "start": "node dist/index.js",
-    "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
+    "dev": "ts-node-dev -r module-alias/register --respawn --transpile-only src/index.ts",
     "dev:watch": "nodemon --exec ts-node src/index.ts",
     "migrate": "ts-node -e \"require('./dist/utils/migrationManager').runMigrations()\"",
     "migrate:dev": "ts-node-dev --respawn --transpile-only -e \"require('./src/utils/migrationManager').runMigrations()\"",
@@ -39,6 +39,7 @@
     "helmet": "^8.1.0",
     "joi": "^17.11.0",
     "jsonwebtoken": "^9.0.2",
+    "module-alias": "^2.2.3",
     "morgan": "^1.10.1",
     "multer": "^2.0.2",
     "node-pg-migrate": "^8.0.3",
@@ -102,5 +103,8 @@
       "<rootDir>/tests/setup.ts"
     ],
     "testTimeout": 30000
+  },
+  "_moduleAliases": {
+    "@": "src"
   }
 }

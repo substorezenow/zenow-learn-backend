@@ -25,6 +25,7 @@ import { resilienceMiddleware, resilientErrorHandler } from './utils/resilienceM
 import { gracefulDegradationMiddleware, healthCheckWithCircuitBreakers } from './utils/gracefulDegradation';
 import { gracefulDegradation } from './utils/gracefulDegradation';
 import { crashPrevention, serviceIsolation, memoryLeakPrevention } from './utils/crashPrevention';
+import 'module-alias/register';
 
 const app = express();
 
@@ -212,12 +213,13 @@ initializeCrashPrevention();
 app.get('/api/docs/openapi.json', serveOpenApiSpec);
 app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(openApiSpec, swaggerConfig));
 
+// Legacy API routes (redirect to current version)
+// app.use('/api/v1', routes); 
+
 // API routes with versioning support
 app.use('/api', routes);
 
-// Legacy API routes (redirect to current version)
-app.use('/api/v1', routes);
-app.use('/api/v2', routes);
+
 
 // Simple test endpoint (no dependencies)
 app.get('/api/test', (req, res) => {
