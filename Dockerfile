@@ -83,4 +83,4 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
 ENTRYPOINT ["dumb-init", "--"]
 
 # Start the application with Node.js debug script
-CMD ["node", "start-debug.js"]
+CMD ["node", "/dist/index.js"]
