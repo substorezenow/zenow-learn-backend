@@ -4,7 +4,7 @@ import handleSendEmail from "../../services/emailService";
 const handleRegisterNewsletter = async (
   req: express.Request,
   res: express.Response
-) => {
+): Promise<void> => {
   try {
     const { email } = req.body;
 
@@ -25,17 +25,19 @@ const handleRegisterNewsletter = async (
       handleSendEmail(email, "Newsletter Subscription Confirmed", html).catch(() => {});
     } catch {}
 
-    return res.json({
+    res.json({
       success: true,
       message: "Newsletter registration successful",
     });
+    return;
   } catch (error) {
     console.error("Error registering newsletter:", error);
     res.status(500).json({
       success: false,
       error: "Internal server error",
     });
-  }
+    return;
+}
 };
 
 const newsletterController = {
