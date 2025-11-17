@@ -7,6 +7,7 @@ import { ValidationError, UnauthorizedError, ConflictError } from '../middleware
 import { RateLimitService } from '../services/rateLimitService';
 import { SessionService } from '../services/sessionService';
 import { SecurityMonitor } from '../services/securityMonitor';
+import handleSendEmail from './emailService';
 
 /**
  * Enhanced authentication service with refresh tokens, OAuth, and advanced security features
@@ -116,6 +117,13 @@ export class AuthService {
         clientIP,
         req.get('User-Agent')
       );
+
+      // Fire-and-forget welcome email
+      try {
+        const html = `
+          <div style=\"font-family: Arial, sans-serif;\">\n            <h2>Welcome to Zenow Academy</h2>\n            <p>Hi ${user.first_name || ''} ${user.last_name || ''},</p>\n            <p>Thanks for signing up! We're excited to have you.</p>\n            <p>You can start exploring courses right away.</p>\n          </div>\n        `;
+        handleSendEmail(user.email, 'Welcome to Zenow Academy', html).catch(() => {});
+      } catch {}
 
       // Return same interface as before
       const response: ApiResponse<AuthUser> = {
@@ -295,6 +303,13 @@ export class AuthService {
         clientIP,
         userAgent
       );
+
+      // Fire-and-forget login alert email
+      try {
+        const html = `
+          <div style=\"font-family: Arial, sans-serif;\">\n            <h2>Login Alert</h2>\n            <p>Hello ${user.username || ''},</p>\n            <p>Your account just logged in successfully.</p>\n            <p><strong>IP:</strong> ${clientIP}</p>\n            <p><strong>User-Agent:</strong> ${userAgent}</p>\n            <p>If this wasn’t you, please reset your password immediately.</p>\n          </div>\n        `;
+        handleSendEmail(user.email, 'Login Alert - Zenow Academy', html).catch(() => {});
+      } catch {}
 
       // Return same interface as before, but with additional refresh token
       const response: LoginResponse = {
@@ -508,9 +523,13 @@ export class AuthService {
         req.get('User-Agent')
       );
 
-      // In a real application, you would send an email here
-      // For now, we'll just log the token (in production, this should be sent via email)
-      console.log(`Password reset token for ${email}: ${resetToken}`);
+      // Send password reset email
+      try {
+        const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/reset-password?token=${resetToken}`;
+        const html = `
+          <div style=\"font-family: Arial, sans-serif;\">\n            <h2>Password Reset</h2>\n            <p>We received a request to reset your password.</p>\n            <p><a href=\"${resetUrl}\">Reset your password</a></p>\n            <p>This link will expire in 1 hour.</p>\n            <p>If you didn’t request this, you can safely ignore this email.</p>\n          </div>\n        `;
+        handleSendEmail(user.email, 'Password Reset - Zenow Academy', html).catch(() => {});
+      } catch {}
 
       const response: ApiResponse = {
         success: true,

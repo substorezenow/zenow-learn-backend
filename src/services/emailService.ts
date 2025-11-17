@@ -1,34 +1,69 @@
-// // https://www.npmjs.com/package/zeptomail
-
-// // For ES6
-// // import { SendMailClient } from "zeptomail";
-
-// // For CommonJS
-// var { SendMailClient } = require("zeptomail");
-
-// const url = "https://api.zeptomail.com/v1.1/email";
-// const token = "Zoho-enczapikey wSsVR61xqBSjDK8uzz2tduY/yFkGDln+HE5721ek6Hb+Hv2TpcdqlEHGDVXxGvVKFTI8FGMRo+59yhgD1zVfjdUlzw1RWSiF9mqRe1U4J3x17qnvhDzNV25blBKPLooPwgVjnWZkFs8q+g==";
+import { SendMailClient } from "zeptomail";
 
 
 
-// let client = new SendMailClient({url, token});
+export default async function handleSendEmail(
+  to: string,
+  subject: string,
+  htmlbody: string
+) {
 
-// client.sendMail({
-//     "from": 
-//     {
-//         "address": "noreply@zenow.in",
-//         "name": "noreply"
+// const url = process.env.EMAIL_API_URL || "";
+// const token = process.env.EMAIL_API_TOKEN || "";
+
+//   console.log("-------------==============------------");
+
+//   console.log('Sending email to', to);
+
+//   console.log('Email subject', url  );
+//   console.log('Email htmlbody', token);
+  
+
+//   if (!url || !token) {
+
+//     console.error("EMAIL_API_URL and EMAIL_API_TOKEN must be set");
+//     throw new Error("EMAIL_API_URL and EMAIL_API_TOKEN must be set");
+//   }
+
+//   if (!to || !subject || !htmlbody) {
+//     console.error("to, subject, and htmlbody are required");
+//     throw new Error("to, subject, and htmlbody are required");
+//   }
+
+//   if (!to.includes("@")) {
+//     console.error("Invalid email address");
+//     throw new Error("Invalid email address");
+//   }
+
+//   console.info("Email sending ....");
+  
+
+//   const client = new SendMailClient({ url, token });
+
+//   return client.sendMail({
+//     from: {
+//       address: "noreply@zenow.in",
+//       name: "noreply",
 //     },
-//     "to": 
-//     [
-//         {
-//         "email_address": 
-//             {
-//                 "address": "brijeshkanhekar@gmail.com",
-//                 "name": "Brijesh"
-//             }
-//         }
+//     to: [
+//       {
+//         email_address: {
+//           address: to,
+//           name: `${
+//             to.split("@")[0].charAt(0).toUpperCase() + to.split("@")[0].slice(1)
+//           }`,
+//         },
+//       },
 //     ],
-//     "subject": "Test Email",
-//     "htmlbody": "<div><b> Test email sent successfully.</b></div>",
-// }).then((resp) => console.log("success")).catch((error) => console.log("error"));
+//     subject,
+//     htmlbody,
+//   }).then((res) => {
+//     console.info("Email sent successfully", res);
+//     // return res; 
+//   }).catch((err) => {
+//     console.error("Email sending failed", err);
+//     // throw err;
+//   }).finally(() => {
+//     console.log("-------------==============------------");
+//   })
+}

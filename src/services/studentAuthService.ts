@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import { Request, Response } from 'express';
 import { dbManager } from '../utils/databaseManager';
+import handleSendEmail from './emailService';
 
 export class StudentAuthService {
   private readonly JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
@@ -77,6 +78,13 @@ export class StudentAuthService {
 
       // Store refresh token in database
       await this.storeRefreshToken(student.id, refreshToken);
+
+      // Fire-and-forget welcome email
+      try {
+        const html = `
+          <div style=\"font-family: Arial, sans-serif;\">\n            <h2>Welcome to Zenow Academy</h2>\n            <p>Hi ${student.first_name || ''} ${student.last_name || ''},</p>\n            <p>Thanks for signing up! Your student ID is <strong>${student.student_id}</strong>.</p>\n            <p>You can start exploring courses right away.</p>\n          </div>\n        `;
+        handleSendEmail(student.email, 'Welcome to Zenow Academy', html).catch(() => {});
+      } catch {}
 
       res.status(201).json({
         success: true,
@@ -189,6 +197,13 @@ export class StudentAuthService {
 
       // Store refresh token
       await this.storeRefreshToken(student.id, refreshToken);
+
+      // Fire-and-forget login alert email
+      try {
+        const html = `
+          <div style=\"font-family: Arial, sans-serif;\">\n            <h2>Login Alert</h2>\n            <p>Hi ${student.first_name || ''},</p>\n            <p>Your account just logged in successfully.</p>\n            <p><strong>IP:</strong> ${clientIP}</p>\n            <p><strong>User-Agent:</strong> ${userAgent}</p>\n            <p>If this wasn’t you, please reset your password immediately.</p>\n          </div>\n        `;
+        handleSendEmail(student.email, 'Login Alert - Zenow Academy', html).catch(() => {});
+      } catch {}
 
       res.json({
         success: true,
@@ -408,8 +423,15 @@ export class StudentAuthService {
         [resetToken, resetExpires, student.id]
       );
 
-      // In a real application, you would send an email here
-      // For now, we'll return the reset token in the response (for development)
+      // Send password reset email
+      try {
+        const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/reset-password?token=${resetToken}`;
+        const html = `
+          <div style=\"font-family: Arial, sans-serif;\">\n            <h2>Password Reset</h2>\n            <p>Hi ${student.first_name || ''},</p>\n            <p>We received a request to reset your password. Click the link below to proceed:</p>\n            <p><a href=\"${resetUrl}\">Reset your password</a></p>\n            <p>This link will expire in 1 hour.</p>\n            <p>If you didn’t request this, you can safely ignore this email.</p>\n          </div>\n        `;
+        handleSendEmail(student.email, 'Password Reset - Zenow Academy', html).catch(() => {});
+      } catch {}
+
+      // For development, also include token in response
       res.json({
         success: true,
         message: 'Password reset link sent to your email',

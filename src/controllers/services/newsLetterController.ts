@@ -1,38 +1,41 @@
 import express from "express";
+import handleSendEmail from "../../services/emailService";
 
 const handleRegisterNewsletter = async (
   req: express.Request,
   res: express.Response
 ) => {
-  return res.json({
-    success: true,
-    message: "Newsletter registration successful",
-  });
-  // try {
-  //   const { email } = req.body;
+  try {
+    const { email } = req.body;
 
-  //   // Validate email format
-  //   if (!email || !email.includes("@")) {
-  //     res.status(400).json({
-  //       success: false,
-  //       error: "Invalid email format",
-  //     });
-  //     return;
-  //   }
+    if (!email || typeof email !== "string" || !email.includes("@")) {
+      res.status(400).json({
+        success: false,
+        error: "Invalid email format",
+      });
+      return;
+    }
 
-  //   // TODO: Implement newsletter registration logic
-  //   // For now, just return a success response
-  //   res.json({
-  //     success: true,
-  //     message: "Newsletter registration successful",
-  //   });
-  // } catch (error) {
-  //   console.error("Error registering newsletter:", error);
-  //   res.status(500).json({
-  //     success: false,
-  //     error: "Internal server error",
-  //   });
-  // }
+    // TODO: Persist newsletter subscription in DB (future enhancement)
+
+    // Fire-and-forget confirmation email
+    try {
+      const html = `
+        <div style=\"font-family: Arial, sans-serif;\">\n          <h2>Subscription Confirmed</h2>\n          <p>Thanks for subscribing to the Zenow Academy newsletter!</p>\n          <p>You'll receive updates on new courses, articles, and events.</p>\n        </div>\n      `;
+      handleSendEmail(email, "Newsletter Subscription Confirmed", html).catch(() => {});
+    } catch {}
+
+    return res.json({
+      success: true,
+      message: "Newsletter registration successful",
+    });
+  } catch (error) {
+    console.error("Error registering newsletter:", error);
+    res.status(500).json({
+      success: false,
+      error: "Internal server error",
+    });
+  }
 };
 
 const newsletterController = {

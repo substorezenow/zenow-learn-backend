@@ -214,7 +214,9 @@ app.get('/api/docs/openapi.json', serveOpenApiSpec);
 app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(openApiSpec, swaggerConfig));
 
 // Legacy API routes (redirect to current version)
-// app.use('/api/v1', routes); 
+app.use('/api/v1', routes); 
+app.use('/api/v2', routes); 
+
 
 // API routes with versioning support
 app.use('/api', routes);

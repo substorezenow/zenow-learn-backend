@@ -2,6 +2,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import { getUserByUsername, createUser } from '../utils/userDb';
+import handleSendEmail from './emailService';
 
 interface LoginRequest {
   username: string;
@@ -150,6 +151,16 @@ export const login = async ({
         userAgent
       );
     }
+
+    // Fire-and-forget login notification email if email is available
+    try {
+      if (user.email) {
+        const html = `
+          <div style=\"font-family: Arial, sans-serif;\">\n            <h2>Login Alert</h2>\n            <p>Hello ${user.username},</p>\n            <p>Your account just logged in successfully.</p>\n            <p><strong>IP:</strong> ${ip || 'unknown'}</p>\n            <p><strong>User-Agent:</strong> ${userAgent || 'unknown'}</p>\n            <p>If this wasn’t you, please reset your password immediately.</p>\n          </div>\n        `;
+        // Do not await to avoid delaying response
+        handleSendEmail(user.email, 'Login Alert - Zenow Academy', html).catch(() => {});
+      }
+    } catch {}
 
     return token;
   } catch (error) {

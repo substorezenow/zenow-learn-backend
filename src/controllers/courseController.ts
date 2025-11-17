@@ -7,6 +7,7 @@ import { cacheManager } from '../utils/cacheManager';
 import { gracefulDegradation } from '../utils/gracefulDegradation';
 import { circuitBreakers } from '../utils/circuitBreaker';
 import { logger } from '../utils/logger';
+import handleSendEmail from '../services/emailService';
 
 // Mock data for development
 const mockCategories: CategoryType[] = [
@@ -307,6 +308,7 @@ export const enrollInCourse = async (req: Request, res: Response): Promise<void>
   try {
     const { id } = req.params;
     const userId = req.user!.id; // Assuming user is authenticated
+    const userEmail = req.user!.email;
     
     const courseModel = new Course();
     
@@ -324,6 +326,16 @@ export const enrollInCourse = async (req: Request, res: Response): Promise<void>
     
     // Enroll user
     const enrollment = await courseModel.enrollUser(userId, id);
+
+    // Fire-and-forget enrollment confirmation email
+    try {
+      const course = await courseModel.getCourseById(id);
+      if (userEmail && course) {
+        const html = `
+          <div style=\"font-family: Arial, sans-serif;\">\n            <h2>Enrollment Confirmed</h2>\n            <p>You have successfully enrolled in <strong>${course.title}</strong>.</p>\n            <p>We wish you a great learning journey!</p>\n          </div>\n        `;
+        handleSendEmail(userEmail, `Enrollment Confirmed - ${course.title}`, html).catch(() => {});
+      }
+    } catch {}
     
     const response: ApiResponse = {
       success: true,
