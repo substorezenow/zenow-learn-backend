@@ -201,3 +201,9 @@ dev-db/
 
 # Deployment artifacts
 deployment-artifacts/
+
+# md
+md/ 
+
+# local_tests
+local_tests/
