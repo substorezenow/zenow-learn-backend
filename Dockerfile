@@ -1,86 +1,50 @@
-# Multi-stage Dockerfile for Google Cloud Run
-# Stage 1: Build stage
+# ===========================
+# Stage 1 — Build the app
+# ===========================
 FROM node:18-alpine AS builder
 
-# Set working directory
 WORKDIR /app
 
-# Disable Husky install during container builds
+# Disable Husky during builds
 ENV HUSKY=0
 
-# Copy package files
+# Install dependencies
 COPY package*.json ./
-
-# Install ALL dependencies (including dev dependencies for build)
 RUN npm ci --silent --ignore-scripts
 
-# Copy source code
+# Copy source and build
 COPY . .
-
-# Build TypeScript to JavaScript
 RUN npm run build
 
-# Verify build output exists
-RUN ls -la dist/ && \
-    test -f dist/index.js && \
-    echo "Build successful - dist/index.js exists"
+# Ensure build exists
+RUN test -f dist/index.js
 
-# Stage 2: Production stage
+# ===========================
+# Stage 2 — Production runtime
+# ===========================
 FROM node:18-alpine AS production
 
-# Install dumb-init for proper signal handling
-RUN apk add --no-cache dumb-init
-
-# Create app user for security
-RUN addgroup -g 1001 -S nodejs && \
-    adduser -S nodejs -u 1001
-
-# Set working directory
 WORKDIR /app
 
-# Disable Husky install during container builds
+# Disable Husky during runtime
 ENV HUSKY=0
 
-# Copy package files
+# Copy package files and install only production deps
 COPY package*.json ./
+RUN npm ci --omit=dev --silent --ignore-scripts && npm cache clean --force
 
-# Install only production dependencies
-RUN npm ci --omit=dev --silent --ignore-scripts && \
-    npm cache clean --force
+# Copy built output only
+COPY --from=builder /app/dist ./dist
 
-# Copy built application from builder stage
-COPY --from=builder --chown=nodejs:nodejs /app/dist ./dist
+# Run as non-root user
+USER node
 
-# Copy any additional files needed at runtime
-COPY --chown=nodejs:nodejs src/migrations ./src/migrations
-
-# Create logs directory with proper permissions
-RUN mkdir -p logs && chown nodejs:nodejs logs
-
-# Copy startup scripts
-COPY --chown=nodejs:nodejs start.sh ./start.sh
-COPY --chown=nodejs:nodejs start-debug.sh ./start-debug.sh
-COPY --chown=nodejs:nodejs start-debug.js ./start-debug.js
-
-# Make scripts executable and verify they exist
-RUN chmod +x ./start.sh ./start-debug.sh && \
-    ls -la ./start.sh ./start-debug.sh ./start-debug.js && \
-    ls -la logs/ && \
-    echo "✅ Startup scripts copied and made executable" && \
-    echo "✅ Logs directory created with proper permissions"
-
-# Switch to non-root user
-USER nodejs
-
-# Expose port (Cloud Run will override this)
+# Cloud Run listens on this port
 EXPOSE 8080
 
-# Health check
+# Optional health check (safe + minimal)
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:8080/api/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })"
+  CMD node -e "require('http').get('http://localhost:8080/api/health', r => process.exit(r.statusCode===200?0:1))"
 
-# Use dumb-init to handle signals properly
-ENTRYPOINT ["dumb-init", "--"]
-
-# Start the application with Node.js debug script
-CMD ["node", "start-debug.js"]
+# Start the server
+CMD ["node", "dist/index.js"]
