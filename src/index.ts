@@ -110,7 +110,9 @@ app.use(sanitizeInput);
 app.use(validateRateLimit);
 
 // ================================================================ db
+// Initialize database connection
 
+initializeDatabase();
 
 // Initialize cache manager with graceful fallback
 
@@ -187,9 +189,6 @@ const initializeCrashPrevention = () => {
 };
 
 const startAsyncInitializers = async () => {
-  try {
-    await initializeDatabase();
-  } catch {}
   try {
     await cacheManager.connect();
   } catch {}
@@ -326,7 +325,7 @@ const PORT = config.port || Number(process.env.PORT || 8080);
 
 // Start the server with error handling
 try {
-  app.listen(PORT,'0.0.0.0', () => {
+  app.listen(PORT, "0.0.0.0", () => {
     // Enhanced startup logging
     logApplicationStart(PORT, process.env.NODE_ENV || "development");
 
