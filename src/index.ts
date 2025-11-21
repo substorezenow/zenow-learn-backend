@@ -110,17 +110,9 @@ app.use(sanitizeInput);
 app.use(validateRateLimit);
 
 // ================================================================ db
-// Initialize database connection
-initializeDatabase();
-// ================================================================ db
 
 
 // Initialize cache manager with graceful fallback
-cacheManager.connect().catch((error) => {
-  console.error("⚠️ Redis connection failed:", error.message);
-  console.log("🔄 Continuing without caching...");
-  // Don't exit - allow app to start without caching
-});
 
 // Initialize security services
 let sessionService: SessionService;
@@ -194,11 +186,20 @@ const initializeCrashPrevention = () => {
   }
 };
 
-// Initialize security services
-initializeSecurity();
-
-// Initialize crash prevention
-initializeCrashPrevention();
+const startAsyncInitializers = async () => {
+  try {
+    await initializeDatabase();
+  } catch {}
+  try {
+    await cacheManager.connect();
+  } catch {}
+  try {
+    await initializeSecurity();
+  } catch {}
+  try {
+    initializeCrashPrevention();
+  } catch {}
+};
 
 // CSRF protection for state-changing operations (temporarily disabled)
 // app.use('/api/admin', CSRFMiddleware.checkCSRF);
@@ -349,6 +350,8 @@ try {
 
     // Set up periodic memory logging
     setInterval(logMemoryUsage, 5 * 60 * 1000); // Every 5 minutes
+
+    startAsyncInitializers();
   });
 } catch (error) {
   console.error("❌ Failed to start server:", error);

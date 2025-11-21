@@ -40,12 +40,20 @@ const handleConnectCockroachdb = async (
 };
 
 const initializeDatabase = async () => {
-  // Connect to CockroachDB with enhanced retry logic
-  let dbConnectionStatus = { connected: false, attempts: 0, retryCount: 0 };
-  await handleConnectCockroachdb(dbConnectionStatus);
+  try {
+    // Connect to CockroachDB with enhanced retry logic
+    let dbConnectionStatus = { connected: false, attempts: 0, retryCount: 0 };
+    await handleConnectCockroachdb(dbConnectionStatus);
 
-  // Connect to MongoDB with enhanced retry logic
-  await handleConnectToMongodb();
+    // Connect to MongoDB with enhanced retry logic
+    await handleConnectToMongodb();
+  } catch (error) {
+    console.error("⚠️ Database connection failed:", (error as Error).message);
+    console.log("🔄 Database will retry automatically in the background...");
+    console.log(
+      "📝 Some features may be unavailable until database connection is restored"
+    );
+  }
 };
 
 export default initializeDatabase;
