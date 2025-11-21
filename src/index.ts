@@ -321,11 +321,11 @@ app.use(errorLogger);
 app.use(resilientErrorHandler);
 app.use(errorHandler);
 
-const PORT = config.port || 8080;
+const PORT = config.port || Number(process.env.PORT || 8080);
 
 // Start the server with error handling
 try {
-  app.listen(PORT, () => {
+  app.listen(PORT,'0.0.0.0', () => {
     // Enhanced startup logging
     logApplicationStart(PORT, process.env.NODE_ENV || "development");
 

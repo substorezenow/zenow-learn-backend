@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { ApiResponse } from '../types';
 import { BlogModel } from '../models/Blog';
 import { BlogCategoryModel } from '../models/BlogCategory';
+import { BlogService } from '../services/blogService';
 import { cacheManager } from '../utils/cacheManager';
 import { asyncHandler, sendSuccessResponse, NotFoundError, DatabaseError, handleDatabaseError } from '../middleware/errorHandler';
 
@@ -197,7 +198,6 @@ export const deleteBlog = asyncHandler(async (req: Request, res: Response): Prom
 export const getPublishedBlogs = asyncHandler(async (req: Request, res: Response): Promise<void> => {
   const { page = 1, limit = 10, category, search, tags } = req.query as any;
   const cacheKey = `blogs:published:${JSON.stringify(req.query)}`;
-  const skip = (Number(page) - 1) * Number(limit);
   try {
     const cached = await cacheManager.get(cacheKey);
     if (cached) {
@@ -206,9 +206,8 @@ export const getPublishedBlogs = asyncHandler(async (req: Request, res: Response
     }
     const filter: any = { status: 'published' };
     if (category) {
-      const cat = await BlogCategoryModel.findOne({ slug: String(category) }).select('_id');
-      if (cat) filter.category_id = cat._id;
-      else filter.category_id = null;
+      const f = await BlogService.resolveCategoryFilter(String(category));
+      Object.assign(filter, f);
     }
     if (search) {
       const q = String(search);
@@ -222,26 +221,7 @@ export const getPublishedBlogs = asyncHandler(async (req: Request, res: Response
       const tagArray = Array.isArray(tags) ? tags.map(String) : [String(tags)];
       filter.tags = { $in: tagArray };
     }
-    const [blogs, total] = await Promise.all([
-      BlogModel.find(filter)
-        .sort({ published_at: -1 })
-        .skip(skip)
-        .limit(Number(limit))
-        .populate({ path: 'category_id', select: 'name slug' }),
-      BlogModel.countDocuments(filter)
-    ]);
-    const totalPages = Math.ceil(total / Number(limit));
-    const response = {
-      blogs,
-      pagination: {
-        page: Number(page),
-        limit: Number(limit),
-        total,
-        totalPages,
-        hasNext: Number(page) < totalPages,
-        hasPrev: Number(page) > 1
-      }
-    };
+    const response = await BlogService.getPublishedBlogs(filter, Number(page), Number(limit));
     await cacheManager.set(cacheKey, response, 900);
     sendSuccessResponse(res, response, undefined, 200);
   } catch (error) {
@@ -258,7 +238,7 @@ export const getBlogBySlug = asyncHandler(async (req: Request, res: Response): P
       sendSuccessResponse(res, cached, undefined, 200);
       return;
     }
-    const blog = await BlogModel.findOne({ slug, status: 'published' }).populate({ path: 'category_id', select: 'name slug' });
+    const blog = await BlogService.getBlogBySlug(slug);
     if (!blog) {
       throw new NotFoundError('Blog');
     }
@@ -286,33 +266,7 @@ export const getBlogsByCategory = asyncHandler(async (req: Request, res: Respons
       sendSuccessResponse(res, cached, undefined, 200);
       return;
     }
-    const category = await BlogCategoryModel.findOne({ slug: categorySlug, is_active: true }).select('_id');
-    if (!category) {
-      const response = { blogs: [], pagination: { page: Number(page), limit: Number(limit), total: 0, totalPages: 0, hasNext: false, hasPrev: false } };
-      await cacheManager.set(cacheKey, response, 900);
-      sendSuccessResponse(res, response, undefined, 200);
-      return;
-    }
-    const [blogs, total] = await Promise.all([
-      BlogModel.find({ category_id: category._id, status: 'published' })
-        .sort({ published_at: -1 })
-        .skip(skip)
-        .limit(Number(limit))
-        .populate({ path: 'category_id', select: 'name slug' }),
-      BlogModel.countDocuments({ category_id: category._id, status: 'published' })
-    ]);
-    const totalPages = Math.ceil(total / Number(limit));
-    const response = {
-      blogs,
-      pagination: {
-        page: Number(page),
-        limit: Number(limit),
-        total,
-        totalPages,
-        hasNext: Number(page) < totalPages,
-        hasPrev: Number(page) > 1
-      }
-    };
+    const response = await BlogService.getBlogsByCategorySlug(categorySlug, Number(page), Number(limit));
     await cacheManager.set(cacheKey, response, 900);
     sendSuccessResponse(res, response, undefined, 200);
   } catch (error) {
@@ -329,10 +283,7 @@ export const getFeaturedBlogs = asyncHandler(async (req: Request, res: Response)
       sendSuccessResponse(res, cached, undefined, 200);
       return;
     }
-    const blogs = await BlogModel.find({ status: 'published' })
-      .sort({ views: -1, published_at: -1 })
-      .limit(Number(limit))
-      .populate({ path: 'category_id', select: 'name slug' });
+    const blogs = await BlogService.getFeaturedBlogs(Number(limit));
     await cacheManager.set(cacheKey, blogs, 1800);
     sendSuccessResponse(res, blogs, undefined, 200);
   } catch (error) {
