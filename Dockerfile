@@ -10,7 +10,7 @@ WORKDIR /app
 COPY package*.json ./
 
 # Disable Husky during build
-ENV HUSKY=0
+ENV HUSKY_SKIP_INSTALL=1
 
 # Install dependencies (dev dependencies included for build)
 RUN npm ci --silent
@@ -32,7 +32,7 @@ WORKDIR /app
 COPY package*.json ./
 
 # Disable Husky in production
-ENV HUSKY=0
+ENV HUSKY_SKIP_INSTALL=1
 
 # Install only production dependencies
 RUN npm ci --omit=dev --silent --ignore-scripts && npm cache clean --force
