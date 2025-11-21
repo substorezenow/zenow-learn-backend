@@ -177,7 +177,7 @@ export const validationSchemas = {
       Joi.string().allow(''),
       Joi.array().items(Joi.string())
     ).optional(),
-    category_id: Joi.string().pattern(/^\d+$/).optional(),
+    category_id: Joi.string().pattern(/^[a-f0-9]{24}$/i).optional(),
     read_time: Joi.alternatives().try(
       Joi.number().integer().min(0).max(120),
       Joi.string().pattern(/^\d+$/)
@@ -197,7 +197,7 @@ export const validationSchemas = {
       Joi.string().allow(''),
       Joi.array().items(Joi.string())
     ).optional(),
-    category_id: Joi.string().pattern(/^\d+$/).optional(),
+    category_id: Joi.string().pattern(/^[a-f0-9]{24}$/i).optional(),
     read_time: Joi.alternatives().try(
       Joi.number().integer().min(0).max(120),
       Joi.string().pattern(/^\d+$/)

@@ -1,4 +1,4 @@
-import { dbManager } from './utils/databaseManager';
+import { dbManager } from '../utils/databaseManager';
 
 export async function connectCockroach(): Promise<void> {
   try {

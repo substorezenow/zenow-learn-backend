@@ -41,6 +41,7 @@
     "joi": "^17.11.0",
     "jsonwebtoken": "^9.0.2",
     "module-alias": "^2.2.3",
+    "mongoose": "^8.20.1",
     "morgan": "^1.10.1",
     "multer": "^2.0.2",
     "node-pg-migrate": "^8.0.3",
