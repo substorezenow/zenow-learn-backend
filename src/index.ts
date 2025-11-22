@@ -97,6 +97,10 @@ app.use(fileupload());
 
 // Custom middleware removed - now using string IDs everywhere
 
+app.get("/", (req, res) => {
+  res.status(200).send("ok");
+});
+
 // Enhanced logging middleware
 app.use(requestLogger);
 app.use(performanceMonitor);

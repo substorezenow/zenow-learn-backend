@@ -1,4 +1,4 @@
-import { dbManager } from "@/utils/databaseManager";
+import { dbManager } from "../utils/databaseManager";
 import { connectCockroach } from "./cockroach";
 import handleConnectToMongodb from "./mongodb";
 
