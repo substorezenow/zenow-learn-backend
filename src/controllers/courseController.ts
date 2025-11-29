@@ -331,8 +331,7 @@ export const enrollInCourse = async (req: Request, res: Response): Promise<void>
     try {
       const course = await courseModel.getCourseById(id);
       if (userEmail && course) {
-        const html = `
-          <div style=\"font-family: Arial, sans-serif;\">\n            <h2>Enrollment Confirmed</h2>\n            <p>You have successfully enrolled in <strong>${course.title}</strong>.</p>\n            <p>We wish you a great learning journey!</p>\n          </div>\n        `;
+        const html = `<html><body style=\"margin:0; padding:0; background:#f5f7fa; font-family:Arial, Helvetica, sans-serif;\"><div style=\"max-width:600px; margin:30px auto; background:white; border-radius:12px; overflow:hidden; box-shadow:0 4px 18px rgba(0,0,0,0.06);\"><div style=\"background:#1e3a8a; padding:22px; text-align:center;\"><img src=\"https://academy.zenow.in/zenow-academy-logo-medium.svg\" alt=\"Zenow Academy\" style=\"width:180px; filter:brightness(0) invert(1);\" /></div><div style=\"padding:30px; color:#333;\"><h2 style=\"color:#1e3a8a; margin-bottom:14px; text-align:center; font-size:24px;\">Enrollment Confirmed</h2><p style=\"font-size:15px; line-height:24px;\">You have successfully enrolled in <strong>${course.title}</strong>.</p><p style=\"font-size:15px; line-height:24px;\">We wish you a great learning journey!</p><div style=\"text-align:center; margin-top:25px;\"><a href=\"https://academy.zenow.in\" style=\"display:inline-block; padding:12px 24px; background:#1e3a8a; color:white; text-decoration:none; border-radius:8px; font-size:16px;\">Go to Dashboard</a></div></div><div style=\"background:#f1f1f1; padding:15px; text-align:center; color:#888; font-size:13px;\">© 2025 Zenow Academy. All rights reserved.</div></div></body></html>`;
         handleSendEmail(userEmail, `Enrollment Confirmed - ${course.title}`, html).catch(() => {});
       }
     } catch {}
